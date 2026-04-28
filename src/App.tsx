@@ -281,14 +281,14 @@ const PEOPLE: Profile[] = [
 ]
 
 const STORAGE = {
-  session: 'cerchio.session',
-  profile: 'cerchio.profile',
-  invites: 'cerchio.invites',
-  likes: 'cerchio.likes',
-  passes: 'cerchio.passes',
-  matches: 'cerchio.matches',
-  messages: 'cerchio.messages',
-  nightAccepted: 'cerchio.nightAccepted',
+  session: 'cerchia.session',
+  profile: 'cerchia.profile',
+  invites: 'cerchia.invites',
+  likes: 'cerchia.likes',
+  passes: 'cerchia.passes',
+  matches: 'cerchia.matches',
+  messages: 'cerchia.messages',
+  nightAccepted: 'cerchia.nightAccepted',
 }
 
 function readStored<T>(key: string, fallback: T): T {
@@ -518,7 +518,7 @@ function App() {
             <Users size={21} />
           </div>
           <div>
-            <p className="eyebrow">Cerchio</p>
+            <p className="eyebrow">Cerchia</p>
             <h1>Incontri privati</h1>
           </div>
         </div>
@@ -804,7 +804,7 @@ function InviteAccess({
           </div>
           <div>
             <p className="eyebrow">Solo invito · Gratis</p>
-            <h1 id="auth-title">Cerchio</h1>
+            <h1 id="auth-title">Cerchia</h1>
           </div>
         </div>
 

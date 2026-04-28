@@ -1,4 +1,4 @@
-# Cerchio
+# Cerchia
 
 MVP React + TypeScript per un'app di incontri privata, gratuita e solo su invito.
 
