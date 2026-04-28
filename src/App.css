@@ -571,6 +571,7 @@ select:focus {
 .invite-manager,
 .profile-editor,
 .user-summary,
+.backend-status,
 .stats-grid,
 .chat-panel {
   border: 1px solid var(--border);
@@ -773,6 +774,48 @@ select:focus {
   font-size: 0.78rem;
   font-weight: 750;
   line-height: 1.15;
+}
+
+.backend-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+}
+
+.backend-status svg {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.backend-status strong,
+.backend-status small {
+  display: block;
+}
+
+.backend-status small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.backend-status.is-connected {
+  border-color: #b7dfd2;
+  background: #e8f7f1;
+}
+
+.backend-status.is-connected svg,
+.backend-status.is-connected strong {
+  color: var(--success);
+}
+
+.backend-status.is-error {
+  border-color: #f1b9b7;
+  background: #fff1f0;
+}
+
+.backend-status.is-error svg,
+.backend-status.is-error strong {
+  color: #8a2c27;
 }
 
 .chat-panel {

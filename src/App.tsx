@@ -8,6 +8,7 @@ import {
   Check,
   Clock,
   Copy,
+  Database,
   Flame,
   Heart,
   KeyRound,
@@ -25,10 +26,12 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { isSupabaseConfigured, supabase } from './lib/supabase'
 import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
 type ViewKey = 'discover' | 'matches' | 'invites' | 'profile'
+type BackendStatus = 'checking' | 'connected' | 'missing' | 'error'
 
 type SectionMeta = {
   key: SectionKey
@@ -357,6 +360,32 @@ function App() {
   const [draftMessage, setDraftMessage] = useState('')
   const [notice, setNotice] = useState('')
   const [invitePurpose, setInvitePurpose] = useState('Nuovo invito privato')
+  const [backendStatus, setBackendStatus] = useState<BackendStatus>(
+    isSupabaseConfigured ? 'checking' : 'missing',
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function verifySupabase() {
+      if (!supabase) {
+        setBackendStatus('missing')
+        return
+      }
+
+      const { error } = await supabase.auth.getSession()
+
+      if (!cancelled) {
+        setBackendStatus(error ? 'error' : 'connected')
+      }
+    }
+
+    void verifySupabase()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const matchingProfiles = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -717,6 +746,8 @@ function App() {
             </div>
           </div>
 
+          <BackendStatusPanel status={backendStatus} />
+
           <ChatPanel
             selectedMatch={selectedMatch}
             messages={selectedMatch ? messages[selectedMatch.id] ?? [] : []}
@@ -727,6 +758,37 @@ function App() {
         </aside>
       </main>
     </div>
+  )
+}
+
+function BackendStatusPanel({ status }: { status: BackendStatus }) {
+  const copy: Record<BackendStatus, { label: string; detail: string }> = {
+    checking: {
+      label: 'Verifica backend',
+      detail: 'Controllo configurazione Supabase.',
+    },
+    connected: {
+      label: 'Supabase collegato',
+      detail: 'URL e publishable key sono attive.',
+    },
+    missing: {
+      label: 'Backend locale',
+      detail: 'Aggiungi le variabili Supabase per sincronizzare.',
+    },
+    error: {
+      label: 'Supabase da verificare',
+      detail: 'Controlla URL e publishable key.',
+    },
+  }
+
+  return (
+    <section className={`backend-status is-${status}`} aria-label="Backend">
+      <Database size={20} />
+      <span>
+        <strong>{copy[status].label}</strong>
+        <small>{copy[status].detail}</small>
+      </span>
+    </section>
   )
 }
 

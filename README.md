@@ -9,6 +9,14 @@ npm install
 npm run dev
 ```
 
+Per collegare Supabase in locale, crea `.env.local` partendo da
+`.env.example`:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
+```
+
 Codici invito iniziali:
 
 - `CERCHIAMI-2026`
@@ -24,6 +32,22 @@ Codici invito iniziali:
 - Creazione e copia di nuovi codici invito.
 - Profilo personale modificabile.
 - Persistenza locale tramite `localStorage`.
+- Client Supabase configurato tramite variabili ambiente.
+
+## Supabase
+
+Lo schema iniziale e le policy RLS sono in `supabase/schema.sql`.
+
+Per preparare il backend:
+
+1. Apri Supabase SQL Editor.
+2. Incolla ed esegui `supabase/schema.sql`.
+3. In Vercel aggiungi queste variabili:
+
+```bash
+VITE_SUPABASE_URL
+VITE_SUPABASE_PUBLISHABLE_KEY
+```
 
 ## Prossimi passi per produzione
 
