@@ -112,7 +112,7 @@ const SECTION_META: Record<SectionKey, SectionMeta> = {
   },
 }
 
-const BASE_INVITES = ['CERCHIO-2026', 'PRIVATO-18', 'AMICI-001']
+const BASE_INVITES = ['CERCHIAMI-2026', 'PRIVATO-18', 'AMICI-001']
 
 const EMPTY_PROFILE: OwnProfile = {
   displayName: '',
@@ -281,14 +281,14 @@ const PEOPLE: Profile[] = [
 ]
 
 const STORAGE = {
-  session: 'cerchia.session',
-  profile: 'cerchia.profile',
-  invites: 'cerchia.invites',
-  likes: 'cerchia.likes',
-  passes: 'cerchia.passes',
-  matches: 'cerchia.matches',
-  messages: 'cerchia.messages',
-  nightAccepted: 'cerchia.nightAccepted',
+  session: 'cerchiami.session',
+  profile: 'cerchiami.profile',
+  invites: 'cerchiami.invites',
+  likes: 'cerchiami.likes',
+  passes: 'cerchiami.passes',
+  matches: 'cerchiami.matches',
+  messages: 'cerchiami.messages',
+  nightAccepted: 'cerchiami.nightAccepted',
 }
 
 function readStored<T>(key: string, fallback: T): T {
@@ -320,7 +320,7 @@ function nowTime() {
 function makeInviteCode() {
   const fragment = Math.random().toString(36).slice(2, 6).toUpperCase()
   const suffix = Math.floor(100 + Math.random() * 900)
-  return `CERCHIO-${fragment}-${suffix}`
+  return `CERCHIAMI-${fragment}-${suffix}`
 }
 
 function App() {
@@ -518,7 +518,7 @@ function App() {
             <Users size={21} />
           </div>
           <div>
-            <p className="eyebrow">Cerchia</p>
+            <p className="eyebrow">CerchiaMi</p>
             <h1>Incontri privati</h1>
           </div>
         </div>
@@ -804,7 +804,7 @@ function InviteAccess({
           </div>
           <div>
             <p className="eyebrow">Solo invito · Gratis</p>
-            <h1 id="auth-title">Cerchia</h1>
+            <h1 id="auth-title">CerchiaMi</h1>
           </div>
         </div>
 
@@ -815,7 +815,7 @@ function InviteAccess({
               value={inviteCode}
               onChange={(event) => setInviteCode(event.target.value)}
               autoComplete="one-time-code"
-              placeholder="CERCHIO-XXXX"
+              placeholder="CERCHIAMI-XXXX"
             />
           </label>
 

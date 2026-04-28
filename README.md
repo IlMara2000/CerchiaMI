@@ -1,4 +1,4 @@
-# Cerchia
+# CerchiaMi
 
 MVP React + TypeScript per un'app di incontri privata, gratuita e solo su invito.
 
@@ -11,7 +11,7 @@ npm run dev
 
 Codici invito iniziali:
 
-- `CERCHIO-2026`
+- `CERCHIAMI-2026`
 - `PRIVATO-18`
 - `AMICI-001`
 
