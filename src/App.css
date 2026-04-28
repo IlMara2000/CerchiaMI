@@ -783,6 +783,10 @@ select:focus {
   padding: 12px;
 }
 
+.backend-status .icon-action {
+  margin-left: auto;
+}
+
 .backend-status svg {
   flex: 0 0 auto;
   color: var(--muted);
@@ -806,6 +810,21 @@ select:focus {
 .backend-status.is-connected svg,
 .backend-status.is-connected strong {
   color: var(--success);
+}
+
+.backend-status.is-syncing {
+  border-color: #f2d39d;
+  background: #fff7e8;
+}
+
+.backend-status.is-syncing svg,
+.backend-status.is-syncing strong {
+  color: var(--warning);
+}
+
+.backend-status.is-missing {
+  border-color: var(--border);
+  background: var(--surface-strong);
 }
 
 .backend-status.is-error {
@@ -935,6 +954,32 @@ select:focus {
   gap: 14px;
 }
 
+.backend-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: var(--surface-strong);
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.backend-note svg {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.backend-note.is-connected,
+.backend-note.is-syncing {
+  border-color: #b7dfd2;
+  color: #174536;
+  background: #e8f7f1;
+}
+
 .check-row {
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
@@ -947,6 +992,10 @@ select:focus {
   color: #8a2c27;
   background: #fff1f0;
   font-weight: 700;
+}
+
+.profile-save {
+  justify-self: start;
 }
 
 .auth-preview {

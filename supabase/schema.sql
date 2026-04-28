@@ -51,6 +51,13 @@ create table if not exists public.messages (
   created_at timestamptz not null default now()
 );
 
+insert into public.invites (code, purpose)
+values
+  ('CERCHIAMI-2026', 'Codice iniziale CerchiaMi'),
+  ('PRIVATO-18', 'Accesso privato 18+'),
+  ('AMICI-001', 'Cerchia iniziale amici')
+on conflict (code) do nothing;
+
 alter table public.profiles enable row level security;
 alter table public.invites enable row level security;
 alter table public.likes enable row level security;
@@ -80,13 +87,31 @@ drop policy if exists "invites_select_authenticated" on public.invites;
 create policy "invites_select_authenticated"
   on public.invites for select
   to authenticated
-  using (true);
+  using (
+    used_by is null
+    or created_by = auth.uid()
+    or used_by = auth.uid()
+  );
 
 drop policy if exists "invites_insert_authenticated" on public.invites;
 create policy "invites_insert_authenticated"
   on public.invites for insert
   to authenticated
   with check (created_by = auth.uid());
+
+drop policy if exists "invites_claim_available" on public.invites;
+create policy "invites_claim_available"
+  on public.invites for update
+  to authenticated
+  using (
+    used_by is null
+    or created_by = auth.uid()
+    or used_by = auth.uid()
+  )
+  with check (
+    created_by = auth.uid()
+    or used_by = auth.uid()
+  );
 
 drop policy if exists "likes_select_involved" on public.likes;
 create policy "likes_select_involved"
@@ -105,6 +130,12 @@ create policy "matches_select_involved"
   on public.matches for select
   to authenticated
   using (profile_a = auth.uid() or profile_b = auth.uid());
+
+drop policy if exists "matches_insert_involved" on public.matches;
+create policy "matches_insert_involved"
+  on public.matches for insert
+  to authenticated
+  with check (profile_a = auth.uid() or profile_b = auth.uid());
 
 drop policy if exists "messages_select_match_members" on public.messages;
 create policy "messages_select_match_members"
@@ -132,3 +163,62 @@ create policy "messages_insert_match_members"
         and (matches.profile_a = auth.uid() or matches.profile_b = auth.uid())
     )
   );
+
+create or replace function public.like_profile(
+  target_profile uuid,
+  target_section text
+)
+returns table(match_id uuid)
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  current_profile uuid := auth.uid();
+  left_profile uuid;
+  right_profile uuid;
+  created_match uuid;
+begin
+  if current_profile is null then
+    raise exception 'Authentication required';
+  end if;
+
+  if target_profile = current_profile then
+    raise exception 'Cannot like yourself';
+  end if;
+
+  if target_section not in ('network', 'relationship', 'night') then
+    raise exception 'Invalid section';
+  end if;
+
+  insert into public.likes (from_profile, to_profile, section)
+  values (current_profile, target_profile, target_section)
+  on conflict (from_profile, to_profile, section) do nothing;
+
+  if exists (
+    select 1
+    from public.likes
+    where from_profile = target_profile
+      and to_profile = current_profile
+      and section = target_section
+  ) then
+    if current_profile::text < target_profile::text then
+      left_profile := current_profile;
+      right_profile := target_profile;
+    else
+      left_profile := target_profile;
+      right_profile := current_profile;
+    end if;
+
+    insert into public.matches (profile_a, profile_b, section)
+    values (left_profile, right_profile, target_section)
+    on conflict (profile_a, profile_b, section)
+    do update set section = excluded.section
+    returning id into created_match;
+  end if;
+
+  return query select created_match;
+end;
+$$;
+
+grant execute on function public.like_profile(uuid, text) to authenticated;
