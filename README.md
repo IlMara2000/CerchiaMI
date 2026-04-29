@@ -25,6 +25,8 @@ Codici invito iniziali:
 - `PRIVATO-18`
 - `AMICI-001`
 
+Per testare subito usa `CERCHIAMI-2026`.
+
 ## Funzioni incluse
 
 - Accesso bloccato da codice invito.

@@ -542,6 +542,24 @@ function isLocalInviteValid(code: string, invites: Invite[]) {
   )
 }
 
+function makeTechnicalEmail() {
+  const randomId =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  return `cerchiami-${randomId}@gmail.com`
+}
+
+function makeTechnicalPassword() {
+  const randomId =
+    typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+  return `CerchiaMi-${randomId}!`
+}
+
 function App() {
   const [session, setSession] = useStoredState<Session | null>(
     STORAGE.session,
@@ -1021,23 +1039,29 @@ function App() {
     setBackendStatus('syncing')
     setBackendDetail('Creo sessione e profilo Supabase.')
 
-    const { data: signInData, error: signInError } =
-      await supabase.auth.signInAnonymously()
+    let signInData = (await supabase.auth.signInAnonymously()).data
 
-    if (signInError || !signInData.user) {
-      setBackendStatus('error')
-      setBackendDetail('Abilita Anonymous sign-ins su Supabase.')
+    if (!signInData.user) {
+      const email = makeTechnicalEmail()
+      const password = makeTechnicalPassword()
+      const emailSignUp = await supabase.auth.signUp({ email, password })
 
-      if (localInviteValid) {
-        completeLocalAccess(request, normalizedCode)
-        setNotice('Supabase non accetta accessi anonimi: continuo in locale.')
-        return null
+      if (emailSignUp.error || !emailSignUp.data.user) {
+        setBackendStatus('error')
+        setBackendDetail('Auth Supabase non accetta nuovi utenti.')
+        return 'Accesso Supabase non disponibile.'
       }
 
-      return 'Accesso Supabase non disponibile e codice locale non valido.'
+      if (!emailSignUp.data.session) {
+        setBackendStatus('error')
+        setBackendDetail('Disattiva conferma email o abilita Anonymous sign-ins.')
+        return 'Supabase richiede conferma email: accesso non completato.'
+      }
+
+      signInData = emailSignUp.data
     }
 
-    const userId = signInData.user.id
+    const userId = signInData.user!.id
     const inviteClaim = await claimInviteCode(
       normalizedCode,
       userId,
@@ -1079,12 +1103,6 @@ function App() {
       setCurrentUserId(null)
       setBackendStatus('error')
       setBackendDetail('Esegui lo schema SQL aggiornato su Supabase.')
-
-      if (localInviteValid) {
-        completeLocalAccess(request, normalizedCode)
-        setNotice('Backend non pronto: app attiva in locale.')
-        return null
-      }
 
       return 'Profilo non salvato su Supabase.'
     }
