@@ -4,7 +4,6 @@ import type { LucideIcon } from 'lucide-react'
 import {
   AtSign,
   BadgeCheck,
-  Briefcase,
   Calendar,
   Check,
   Clock,
@@ -21,6 +20,7 @@ import {
   Send,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   User,
   Users,
   X,
@@ -29,7 +29,7 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
-type ViewKey = 'discover' | 'matches' | 'invites' | 'profile'
+type ViewKey = 'discover' | 'compatible' | 'matches' | 'invites' | 'profile'
 type ProfileSource = 'demo' | 'remote'
 
 type SectionMeta = {
@@ -53,6 +53,10 @@ type Profile = {
   bio: string
   availability: string
   intentNote: string
+  relationshipGoal: string
+  values: string[]
+  prompt: string
+  dateIdea: string
   verified: boolean
   availableToday: boolean
   likedYou: boolean
@@ -193,27 +197,34 @@ const PROFILE_SELECT =
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
     key: 'network',
-    label: 'Sociale',
-    title: 'Persone nuove, senza rumore',
+    label: 'Scopri',
+    title: 'Persone compatibili, non swipe infiniti',
     detail:
-      'Profili chiari, pochi segnali utili e conversazioni che partono con intenzioni leggibili.',
-    Icon: Briefcase,
+      'Schede essenziali con intenzione, compatibilita e un primo aggancio reale.',
+    Icon: Users,
   },
   relationship: {
     key: 'relationship',
-    label: 'Relazione',
-    title: 'Conoscenze con la stessa direzione',
+    label: 'Stabile',
+    title: 'Relazioni con direzione chiara',
     detail: 'Meno ambiguita, piu contesto e tempi realistici prima di scriversi.',
     Icon: Heart,
   },
   night: {
     key: 'night',
-    label: '18+',
-    title: 'Spazio adulto, confini chiari',
+    label: 'Chimica 18+',
+    title: 'Spazio adulto, consenso esplicito',
     detail: 'Accesso separato, consenso esplicito e nessuna pressione.',
     Icon: Flame,
   },
 }
+
+const RELATIONSHIP_GOALS = [
+  { value: 'relationship', label: 'Relazione stabile' },
+  { value: 'slow-dating', label: 'Conoscenza con calma' },
+  { value: 'friends', label: 'Uscite e nuove persone' },
+  { value: 'casual', label: 'Chimica senza pressione' },
+]
 
 const BASE_INVITES = ['CERCHIAMI-2026', 'PRIVATO-18', 'AMICI-001']
 
@@ -257,6 +268,10 @@ const PEOPLE: Profile[] = [
     bio: 'Mi piace incontrare persone curiose, con idee da costruire e una vita fuori dallo schermo.',
     availability: 'Aperitivo dopo le 19',
     intentNote: 'Caffe, progetto o cena senza fretta.',
+    relationshipGoal: 'slow-dating',
+    values: ['curiosita', 'indipendenza', 'dialogo'],
+    prompt: 'Mi conquistano le persone che sanno fare domande belle.',
+    dateIdea: 'Mostra piccola e bicchiere in zona Porta Venezia.',
     verified: true,
     availableToday: true,
     likedYou: true,
@@ -275,6 +290,10 @@ const PEOPLE: Profile[] = [
     bio: 'Cerco chimica, conversazioni sincere e persone che sanno dire cosa desiderano.',
     availability: 'Weekend sera',
     intentNote: 'Prima si capisce il tono, poi si decide insieme.',
+    relationshipGoal: 'casual',
+    values: ['ironia', 'chiarezza', 'presenza'],
+    prompt: 'Il miglior primo messaggio e diretto ma leggero.',
+    dateIdea: 'Cocktail bar tranquillo, un tavolo e niente fretta.',
     verified: true,
     availableToday: false,
     likedYou: false,
@@ -293,6 +312,10 @@ const PEOPLE: Profile[] = [
     bio: 'Energia tranquilla, zero giochi mentali, molti appunti su ristoranti da provare.',
     availability: 'Pausa pranzo o sabato',
     intentNote: 'Amicizia prima, poi si vede.',
+    relationshipGoal: 'slow-dating',
+    values: ['gentilezza', 'costanza', 'curiosita'],
+    prompt: 'Parlami di un posto dove torneresti domani.',
+    dateIdea: 'Passeggiata al mercato e pranzo semplice.',
     verified: true,
     availableToday: true,
     likedYou: false,
@@ -311,6 +334,10 @@ const PEOPLE: Profile[] = [
     bio: 'Vivo bene con persone adulte, presenti e capaci di parlare dei propri limiti.',
     availability: 'Dopo servizio',
     intentNote: 'Chiarezza, rispetto e nessuna pressione.',
+    relationshipGoal: 'casual',
+    values: ['consenso', 'privacy', 'maturita'],
+    prompt: 'Mi piace quando i confini sono detti bene, non indovinati.',
+    dateIdea: 'Cena tardi, poca folla e conversazione schietta.',
     verified: true,
     availableToday: true,
     likedYou: true,
@@ -328,7 +355,11 @@ const PEOPLE: Profile[] = [
     tags: ['design ops', 'podcast', 'caffe'],
     bio: 'Cerco persone con cui scambiare idee, contatti e magari aprire un progetto laterale.',
     availability: 'Mattine e giovedi sera',
-    intentNote: 'Networking leggero e amicizie nuove.',
+    intentNote: 'Uscite leggere e nuove persone.',
+    relationshipGoal: 'friends',
+    values: ['leggerezza', 'ambizione', 'ascolto'],
+    prompt: 'Un buon incontro lascia energia, non confusione.',
+    dateIdea: 'Caffe lungo e giro in libreria.',
     verified: false,
     availableToday: false,
     likedYou: false,
@@ -347,6 +378,10 @@ const PEOPLE: Profile[] = [
     bio: 'Mi piace la leggerezza quando resta adulta: parole chiare, consenso e discrezione.',
     availability: 'Venerdi tardi',
     intentNote: 'Chimica, privacy e rispetto reciproco.',
+    relationshipGoal: 'casual',
+    values: ['discrezione', 'consenso', 'eleganza'],
+    prompt: 'La chimica migliore non forza mai i tempi.',
+    dateIdea: 'Drink dopo cena in un posto riservato.',
     verified: true,
     availableToday: false,
     likedYou: true,
@@ -481,6 +516,8 @@ function rowToProfile(
   const cleanBio = row.bio?.trim()
   const availability = row.availability?.trim() || 'Disponibilita da definire'
   const interests = row.interests?.filter(Boolean) ?? []
+  const relationshipGoal =
+    row.relationship_goal || (primarySection === 'night' ? 'casual' : 'slow-dating')
 
   return {
     id: row.id,
@@ -488,7 +525,10 @@ function rowToProfile(
     age: row.age,
     city: row.city,
     distance: stableDistance(row.id, row.city, viewerCity),
-    role: row.visibility === 'matches' ? 'Profilo riservato' : 'Membro CerchiaMi',
+    role:
+      row.visibility === 'matches'
+        ? 'Profilo riservato'
+        : relationshipGoalLabel(relationshipGoal),
     image: avatarFor(row.display_name),
     sections,
     tags: interests.length
@@ -496,9 +536,15 @@ function rowToProfile(
       : sections.map((section) => SECTION_META[section].label),
     bio:
       cleanBio ||
-      'Profilo appena entrato nella cerchia. Parti leggero e chiedi cosa cerca.',
+      'Profilo appena entrato: parti leggero e chiedi cosa cerca davvero.',
     availability,
     intentNote: `Aperto a ${sectionLabel}.`,
+    relationshipGoal,
+    values: interests.slice(0, 3),
+    prompt:
+      cleanBio ||
+      'Preferisco partire da una domanda vera invece che da una frase fatta.',
+    dateIdea: `Primo incontro a ${row.city}: ${availability.toLowerCase()}.`,
     verified: true,
     availableToday: /oggi|stasera|sera|weekend/i.test(availability),
     likedYou: likedByIds.has(row.id),
@@ -538,6 +584,89 @@ function parseInterests(value: string) {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 8)
+}
+
+function relationshipGoalLabel(value: string) {
+  return (
+    RELATIONSHIP_GOALS.find((goal) => goal.value === value)?.label ??
+    'Conoscenza autentica'
+  )
+}
+
+function sharedInterests(profile: Profile, viewer: OwnProfile) {
+  const viewerInterests = viewer.interests.map((interest) =>
+    interest.toLowerCase(),
+  )
+
+  return profile.tags.filter((tag) =>
+    viewerInterests.some(
+      (interest) =>
+        interest.includes(tag.toLowerCase()) ||
+        tag.toLowerCase().includes(interest),
+    ),
+  )
+}
+
+function compatibilityScore(
+  profile: Profile,
+  viewer: OwnProfile,
+  activeSection: SectionKey,
+) {
+  let score = 54
+
+  if (profile.sections.includes(activeSection)) {
+    score += 10
+  }
+
+  if (viewer.relationshipGoal && profile.relationshipGoal === viewer.relationshipGoal) {
+    score += 14
+  }
+
+  score += Math.min(sharedInterests(profile, viewer).length * 8, 16)
+
+  const ageGap = Math.abs(profile.age - (viewer.age || profile.age))
+  score += ageGap <= 3 ? 8 : ageGap <= 7 ? 4 : 0
+
+  if (profile.distance <= 5) {
+    score += 6
+  }
+
+  if (profile.availableToday) {
+    score += 4
+  }
+
+  return Math.max(48, Math.min(score, 98))
+}
+
+function compatibilityReasons(
+  profile: Profile,
+  viewer: OwnProfile,
+  activeSection: SectionKey,
+) {
+  const reasons: string[] = []
+  const shared = sharedInterests(profile, viewer)
+
+  if (shared.length) {
+    reasons.push(`Interesse comune: ${shared[0]}`)
+  }
+
+  if (viewer.relationshipGoal && profile.relationshipGoal === viewer.relationshipGoal) {
+    reasons.push('Stessa intenzione')
+  }
+
+  if (profile.sections.includes(activeSection)) {
+    reasons.push(`Sezione ${SECTION_META[activeSection].label.toLowerCase()}`)
+  }
+
+  if (profile.distance <= 5) {
+    reasons.push('Vicini')
+  }
+
+  if (profile.availableToday) {
+    reasons.push('Disponibile oggi')
+  }
+
+  return reasons.slice(0, 3)
 }
 
 function validateEmailAuthRequest(request: EmailAuthRequest) {
@@ -641,6 +770,9 @@ function App() {
   const [activeView, setActiveView] = useState<ViewKey>('discover')
   const [query, setQuery] = useState('')
   const [maxDistance, setMaxDistance] = useState(25)
+  const [minAge, setMinAge] = useState(24)
+  const [maxAge, setMaxAge] = useState(45)
+  const [intentFilter, setIntentFilter] = useState('all')
   const [availableOnly, setAvailableOnly] = useState(false)
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null)
   const [draftMessage, setDraftMessage] = useState('')
@@ -882,18 +1014,41 @@ function App() {
         const matchesSection = profile.sections.includes(activeSection)
         const matchesQuery =
           !query.trim() ||
-          `${profile.name} ${profile.city} ${profile.role} ${profile.tags.join(' ')}`
+          `${profile.name} ${profile.city} ${profile.role} ${profile.bio} ${profile.tags.join(' ')} ${profile.values.join(' ')} ${profile.dateIdea}`
             .toLowerCase()
             .includes(query.toLowerCase())
+        const matchesIntent =
+          intentFilter === 'all' || profile.relationshipGoal === intentFilter
 
         return (
           matchesSection &&
           matchesQuery &&
+          matchesIntent &&
+          profile.age >= minAge &&
+          profile.age <= maxAge &&
           profile.distance <= maxDistance &&
           (!availableOnly || profile.availableToday)
         )
       }),
-    [activeSection, allProfiles, availableOnly, maxDistance, query],
+    [
+      activeSection,
+      allProfiles,
+      availableOnly,
+      intentFilter,
+      maxAge,
+      maxDistance,
+      minAge,
+      query,
+    ],
+  )
+  const compatibleProfiles = useMemo(
+    () =>
+      [...visibleProfiles].sort(
+        (a, b) =>
+          compatibilityScore(b, ownProfile, activeSection) -
+          compatibilityScore(a, ownProfile, activeSection),
+      ),
+    [activeSection, ownProfile, visibleProfiles],
   )
   const matchProfiles = allProfiles.filter(
     (profile) =>
@@ -1402,6 +1557,7 @@ function App() {
           <div className="view-tabs">
             {[
               ['discover', 'Scopri', Search],
+              ['compatible', 'Compatibili', Sparkles],
               ['matches', 'Match', Heart],
               ['invites', 'Inviti', KeyRound],
               ['profile', 'Profilo', User],
@@ -1418,7 +1574,7 @@ function App() {
             ))}
           </div>
 
-          {activeView === 'discover' && (
+          {(activeView === 'discover' || activeView === 'compatible') && (
             <>
               <div className="filters">
                 <label className="search-field">
@@ -1442,6 +1598,45 @@ function App() {
                   />
                 </label>
 
+                <label className="select-field">
+                  Intenzione
+                  <select
+                    value={intentFilter}
+                    onChange={(event) => setIntentFilter(event.target.value)}
+                  >
+                    <option value="all">Tutte</option>
+                    {RELATIONSHIP_GOALS.map((goal) => (
+                      <option key={goal.value} value={goal.value}>
+                        {goal.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="age-field">
+                  Eta
+                  <span>
+                    <input
+                      type="number"
+                      min="18"
+                      max="80"
+                      value={minAge}
+                      onChange={(event) =>
+                        setMinAge(Math.min(Number(event.target.value), maxAge))
+                      }
+                    />
+                    <input
+                      type="number"
+                      min="18"
+                      max="80"
+                      value={maxAge}
+                      onChange={(event) =>
+                        setMaxAge(Math.max(Number(event.target.value), minAge))
+                      }
+                    />
+                  </span>
+                </label>
+
                 <label className="toggle-pill">
                   <input
                     type="checkbox"
@@ -1456,7 +1651,13 @@ function App() {
                 <NightGate onAccept={() => setNightAccepted(true)} />
               ) : (
                 <ProfileGrid
-                  profiles={visibleProfiles}
+                  profiles={
+                    activeView === 'compatible'
+                      ? compatibleProfiles
+                      : visibleProfiles
+                  }
+                  viewerProfile={ownProfile}
+                  activeSection={activeSection}
                   likedIds={effectiveLikedIds}
                   passedIds={passedIds}
                   matchedIds={effectiveMatchedIds}
@@ -1522,6 +1723,26 @@ function App() {
               <span>inviti</span>
             </div>
           </div>
+
+          <section className="dating-card" aria-label="Suggerimento match">
+            <Sparkles size={20} />
+            <span>
+              <strong>
+                {compatibleProfiles[0]
+                  ? `${compatibleProfiles[0].name}: ${compatibilityScore(
+                      compatibleProfiles[0],
+                      ownProfile,
+                      activeSection,
+                    )}% compatibilita`
+                  : relationshipGoalLabel(ownProfile.relationshipGoal)}
+              </strong>
+              <small>
+                {compatibleProfiles[0]
+                  ? compatibleProfiles[0].dateIdea
+                  : 'Completa preferenze e interessi per affinare i profili.'}
+              </small>
+            </span>
+          </section>
 
           <section className="side-note" aria-label="Promemoria">
             <ShieldCheck size={20} />
@@ -1662,7 +1883,7 @@ function EmailAccess({
       <section className="auth-preview" aria-label="Profili in evidenza">
         <div className="preview-photo is-large">
           <img src={PEOPLE[0].image} alt="" />
-          <span>Sociale</span>
+          <span>Scopri</span>
         </div>
         <div className="preview-photo">
           <img src={PEOPLE[3].image} alt="" />
@@ -1791,7 +2012,7 @@ function OnboardingFlow({
           {step === 0 && (
             <>
               <p className="eyebrow">Invito</p>
-              <h2>Entra nella cerchia</h2>
+              <h2>Entra in CerchiaMi</h2>
               <label>
                 Codice invito
                 <input
@@ -1913,10 +2134,11 @@ function OnboardingFlow({
                     }
                   >
                     <option value="">Scegli</option>
-                    <option value="friends">Amicizie e giri sociali</option>
-                    <option value="relationship">Relazione</option>
-                    <option value="network">Networking leggero</option>
-                    <option value="casual">Chimica senza pressione</option>
+                    {RELATIONSHIP_GOALS.map((goal) => (
+                      <option key={goal.value} value={goal.value}>
+                        {goal.label}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>
@@ -2099,6 +2321,8 @@ function NightGate({ onAccept }: { onAccept: () => void }) {
 
 function ProfileGrid({
   profiles,
+  viewerProfile,
+  activeSection,
   likedIds,
   passedIds,
   matchedIds,
@@ -2106,6 +2330,8 @@ function ProfileGrid({
   onPass,
 }: {
   profiles: Profile[]
+  viewerProfile: OwnProfile
+  activeSection: SectionKey
   likedIds: string[]
   passedIds: string[]
   matchedIds: string[]
@@ -2128,6 +2354,8 @@ function ProfileGrid({
         const liked = likedIds.includes(profile.id)
         const passed = passedIds.includes(profile.id)
         const matched = matchedIds.includes(profile.id)
+        const score = compatibilityScore(profile, viewerProfile, activeSection)
+        const reasons = compatibilityReasons(profile, viewerProfile, activeSection)
 
         return (
           <article
@@ -2137,6 +2365,10 @@ function ProfileGrid({
             <div className="photo-frame">
               <img src={profile.image} alt={`${profile.name}, ${profile.age}`} />
               <div className="photo-badges">
+                <span>
+                  <Sparkles size={14} />
+                  {score}%
+                </span>
                 {profile.verified && (
                   <span>
                     <BadgeCheck size={14} />
@@ -2158,7 +2390,7 @@ function ProfileGrid({
                   <h3>
                     {profile.name}, {profile.age}
                   </h3>
-                  <p>{profile.role}</p>
+                  <p>{relationshipGoalLabel(profile.relationshipGoal)}</p>
                 </div>
                 <span className="distance">
                   <MapPin size={14} />
@@ -2168,16 +2400,29 @@ function ProfileGrid({
 
               <p className="profile-bio">{profile.bio}</p>
 
-              <div className="tag-row">
-                {profile.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
+              <div className="match-insight">
+                <strong>{score}% compatibili</strong>
+                <span>
+                  {reasons.length
+                    ? reasons.join(' · ')
+                    : 'Profilo coerente con le tue preferenze'}
+                </span>
               </div>
+
+              <div className="tag-row">
+                {[...profile.tags, ...profile.values]
+                  .slice(0, 5)
+                  .map((tag, index) => (
+                    <span key={`${tag}-${index}`}>{tag}</span>
+                  ))}
+              </div>
+
+              <p className="profile-prompt">{profile.prompt}</p>
 
               <div className="mini-details">
                 <span>
                   <Calendar size={15} />
-                  {profile.availability}
+                  {profile.dateIdea}
                 </span>
                 <span>{profile.intentNote}</span>
               </div>
@@ -2472,10 +2717,11 @@ function OwnProfileEditor({
             }
           >
             <option value="">Scegli</option>
-            <option value="friends">Amicizie e giri sociali</option>
-            <option value="relationship">Relazione</option>
-            <option value="network">Networking leggero</option>
-            <option value="casual">Chimica senza pressione</option>
+            {RELATIONSHIP_GOALS.map((goal) => (
+              <option key={goal.value} value={goal.value}>
+                {goal.label}
+              </option>
+            ))}
           </select>
         </label>
       </div>

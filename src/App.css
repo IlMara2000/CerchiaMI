@@ -110,7 +110,8 @@ p {
 .mini-details,
 .stats-grid,
 .composer,
-.invite-create {
+.invite-create,
+.age-field span {
   display: flex;
   align-items: center;
 }
@@ -353,6 +354,8 @@ p {
 
 .search-field,
 .distance-field,
+.select-field,
+.age-field,
 .toggle-pill {
   min-height: 46px;
   border: 1px solid var(--border);
@@ -408,6 +411,40 @@ select:focus {
 
 .distance-field input {
   accent-color: var(--ink);
+}
+
+.select-field,
+.age-field {
+  gap: 8px;
+  padding: 0 12px;
+}
+
+.select-field {
+  display: grid;
+  min-width: 190px;
+  grid-template-columns: auto minmax(130px, 1fr);
+  align-items: center;
+}
+
+.select-field select {
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.age-field {
+  display: grid;
+  grid-template-columns: auto minmax(116px, 1fr);
+  align-items: center;
+}
+
+.age-field span {
+  gap: 6px;
+}
+
+.age-field input {
+  width: 58px;
+  min-height: 34px;
+  padding: 0 8px;
 }
 
 .toggle-pill {
@@ -529,7 +566,37 @@ select:focus {
 }
 
 .profile-bio {
-  min-height: 66px;
+  min-height: 58px;
+}
+
+.match-insight {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #d7ece6;
+  border-radius: var(--radius);
+  background: #f2fbf8;
+}
+
+.match-insight strong {
+  color: var(--success);
+  font-size: 0.88rem;
+}
+
+.match-insight span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.profile-prompt {
+  padding: 10px 0 0;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 720;
+  line-height: 1.38;
 }
 
 .tag-row {
@@ -603,6 +670,7 @@ select:focus {
 .invite-manager,
 .profile-editor,
 .user-summary,
+.dating-card,
 .side-note,
 .stats-grid,
 .chat-panel {
@@ -815,6 +883,32 @@ select:focus {
   gap: 10px;
   padding: 14px;
   background: #f5fbf8;
+}
+
+.dating-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 14px;
+  background:
+    linear-gradient(135deg, rgba(220, 91, 115, 0.12), transparent 54%),
+    var(--surface);
+}
+
+.dating-card svg {
+  flex: 0 0 auto;
+  color: var(--relationship);
+}
+
+.dating-card strong,
+.dating-card small {
+  display: block;
+}
+
+.dating-card small {
+  margin-top: 2px;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .side-note svg {
