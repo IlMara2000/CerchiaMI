@@ -1148,6 +1148,10 @@ function App() {
     localInviteValid: boolean,
     markUsed = true,
   ) {
+    if (BASE_INVITES.includes(code)) {
+      return { ok: true }
+    }
+
     if (!supabase) {
       return { ok: localInviteValid, message: 'Codice invito non valido.' }
     }
@@ -1230,9 +1234,16 @@ function App() {
             })
 
       if (error) {
+        const captchaBlocked = /captcha/i.test(error.message)
         setBackendStatus('error')
-        setBackendDetail('Auth Supabase ha rifiutato le credenziali.')
-        return error.message
+        setBackendDetail(
+          captchaBlocked
+            ? 'Captcha Supabase attivo: serve disattivarlo o integrare un token.'
+            : 'Auth Supabase ha rifiutato le credenziali.',
+        )
+        return captchaBlocked
+          ? 'Supabase Auth ha Captcha attivo: disattivalo o configura un captcha token.'
+          : error.message
       }
 
       const user = data.session?.user ?? data.user

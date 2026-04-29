@@ -54,7 +54,9 @@ Per preparare il backend:
 2. Incolla ed esegui `supabase/schema.sql`.
 3. In Supabase Auth abilita il provider Email. Se vuoi entrare subito senza
    link di conferma, disattiva temporaneamente la conferma email.
-4. In Vercel aggiungi queste variabili:
+4. Disattiva Captcha protection in Auth, oppure integra un captcha token nel
+   client: senza token Supabase blocca la creazione account.
+5. In Vercel aggiungi queste variabili:
 
 ```bash
 VITE_SUPABASE_URL
