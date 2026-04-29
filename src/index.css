@@ -1,19 +1,19 @@
 :root {
-  --bg: #edf2f6;
+  --bg: #f4f7f6;
   --surface: #ffffff;
-  --surface-strong: #f8fafc;
-  --text: #182330;
-  --muted: #687586;
-  --faint: #8b97a8;
-  --border: #dce4ec;
-  --border-strong: #c7d3dd;
-  --ink: #101820;
-  --network: #087f8c;
-  --relationship: #d94d6a;
-  --night: #6d4fd8;
+  --surface-strong: #f8fbfa;
+  --text: #14201f;
+  --muted: #61716f;
+  --faint: #8b9a97;
+  --border: #dde7e4;
+  --border-strong: #bfcdc9;
+  --ink: #14201f;
+  --network: #087e75;
+  --relationship: #dc5b73;
+  --night: #5c54d8;
   --success: #2f855a;
   --warning: #b7791f;
-  --shadow: 0 18px 45px rgba(26, 37, 52, 0.12);
+  --shadow: 0 22px 60px rgba(20, 32, 31, 0.12);
   --radius: 8px;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,

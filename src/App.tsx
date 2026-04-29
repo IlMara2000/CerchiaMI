@@ -9,7 +9,6 @@ import {
   Check,
   Clock,
   Copy,
-  Database,
   Flame,
   Heart,
   KeyRound,
@@ -18,22 +17,19 @@ import {
   MapPin,
   MessageCircle,
   Plus,
-  RefreshCcw,
   Search,
   Send,
   ShieldCheck,
   SlidersHorizontal,
   User,
-  UserPlus,
   Users,
   X,
 } from 'lucide-react'
-import { isSupabaseConfigured, supabase } from './lib/supabase'
+import { supabase } from './lib/supabase'
 import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
 type ViewKey = 'discover' | 'matches' | 'invites' | 'profile'
-type BackendStatus = 'checking' | 'connected' | 'syncing' | 'missing' | 'error'
 type ProfileSource = 'demo' | 'remote'
 
 type SectionMeta = {
@@ -66,7 +62,7 @@ type Profile = {
 
 type Session = {
   userId?: string
-  backend: 'local' | 'supabase'
+  backend: 'supabase'
   name: string
   age: number
   city: string
@@ -132,11 +128,6 @@ type OnboardingDraft = {
   accepted: boolean
 }
 
-type DisclaimerState = {
-  key: string
-  shouldShow: boolean
-}
-
 type RemoteProfileRow = {
   id: string
   first_name: string | null
@@ -153,7 +144,6 @@ type RemoteProfileRow = {
   availability: string | null
   sections: string[] | null
   visibility: OwnProfile['visibility'] | null
-  created_at?: string
 }
 
 type RemoteLikeRow = {
@@ -198,28 +188,29 @@ type RemoteState = {
 }
 
 const PROFILE_SELECT =
-  'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility, created_at'
+  'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility'
 
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
     key: 'network',
-    label: 'Lavoro / amicizia',
-    title: 'Cerchie semplici, non swipe infiniti',
-    detail: 'Persone divise per intenzione: contatti, amicizie e nuovi giri sociali.',
+    label: 'Sociale',
+    title: 'Persone nuove, senza rumore',
+    detail:
+      'Profili chiari, pochi segnali utili e conversazioni che partono con intenzioni leggibili.',
     Icon: Briefcase,
   },
   relationship: {
     key: 'relationship',
     label: 'Relazione',
-    title: 'Conosci solo chi cerca la stessa direzione',
-    detail: 'Meno ambiguita, piu contesto e tempi realistici prima del match.',
+    title: 'Conoscenze con la stessa direzione',
+    detail: 'Meno ambiguita, piu contesto e tempi realistici prima di scriversi.',
     Icon: Heart,
   },
   night: {
     key: 'night',
-    label: 'Notte piccante',
-    title: 'Sezione 18+ con consenso in primo piano',
-    detail: 'Accesso separato, confini chiari e nessuna pressione.',
+    label: '18+',
+    title: 'Spazio adulto, confini chiari',
+    detail: 'Accesso separato, consenso esplicito e nessuna pressione.',
     Icon: Flame,
   },
 }
@@ -344,24 +335,6 @@ const PEOPLE: Profile[] = [
     source: 'demo',
   },
   {
-    id: 'amir',
-    name: 'Amir',
-    age: 32,
-    city: 'Milano',
-    distance: 6,
-    role: 'Founder',
-    image: 'https://randomuser.me/api/portraits/men/11.jpg',
-    sections: ['network', 'relationship'],
-    tags: ['fintech', 'running', 'sushi'],
-    bio: 'Costruisco aziende, ma mi interessa parlare anche di cose non ottimizzabili.',
-    availability: 'Colazione o camminata',
-    intentNote: 'Connessioni vere, senza agenda nascosta.',
-    verified: true,
-    availableToday: true,
-    likedYou: false,
-    source: 'demo',
-  },
-  {
     id: 'elena',
     name: 'Elena',
     age: 38,
@@ -377,42 +350,6 @@ const PEOPLE: Profile[] = [
     verified: true,
     availableToday: false,
     likedYou: true,
-    source: 'demo',
-  },
-  {
-    id: 'riccardo',
-    name: 'Riccardo',
-    age: 30,
-    city: 'Verona',
-    distance: 4,
-    role: 'Ingegnere',
-    image: 'https://randomuser.me/api/portraits/men/51.jpg',
-    sections: ['relationship'],
-    tags: ['bici', 'cucina thai', 'libri'],
-    bio: 'Sono diretto, gentile e felice quando una conversazione continua anche fuori app.',
-    availability: 'Domenica pomeriggio',
-    intentNote: 'Conoscenza graduale, senza copioni.',
-    verified: false,
-    availableToday: true,
-    likedYou: false,
-    source: 'demo',
-  },
-  {
-    id: 'chiara',
-    name: 'Chiara',
-    age: 27,
-    city: 'Parma',
-    distance: 7,
-    role: 'Trainer',
-    image: 'https://randomuser.me/api/portraits/women/28.jpg',
-    sections: ['network', 'night'],
-    tags: ['fitness', 'dj set', 'spontaneita'],
-    bio: 'Mi piacciono le persone pratiche, educate e capaci di scegliere senza sparire.',
-    availability: 'Stasera dopo le 21',
-    intentNote: 'Leggerezza, consenso e zero ambiguita.',
-    verified: true,
-    availableToday: true,
-    likedYou: false,
     source: 'demo',
   },
 ]
@@ -431,19 +368,7 @@ const STORAGE = {
 function readStored<T>(key: string, fallback: T): T {
   try {
     const rawValue = window.localStorage.getItem(key)
-    const parsedValue = rawValue ? (JSON.parse(rawValue) as T) : fallback
-
-    if (
-      key === STORAGE.session &&
-      parsedValue &&
-      typeof parsedValue === 'object' &&
-      'backend' in parsedValue &&
-      parsedValue.backend === 'local'
-    ) {
-      return fallback
-    }
-
-    return parsedValue
+    return rawValue ? (JSON.parse(rawValue) as T) : fallback
   } catch {
     return fallback
   }
@@ -534,7 +459,7 @@ function ownProfileToSession(
 ): Session {
   return {
     userId,
-    backend: userId ? 'supabase' : 'local',
+    backend: 'supabase',
     name: profile.displayName,
     age: profile.age,
     city: profile.city,
@@ -582,16 +507,6 @@ function rowToProfile(
   }
 }
 
-function isLocalInviteValid(code: string, invites: Invite[]) {
-  if (BASE_INVITES.includes(code)) {
-    return true
-  }
-
-  return invites.some(
-    (invite) => invite.code.toUpperCase() === code && !invite.used,
-  )
-}
-
 function calculateAge(birthDate: string) {
   const parsedDate = new Date(birthDate)
 
@@ -623,10 +538,6 @@ function parseInterests(value: string) {
     .map((item) => item.trim())
     .filter(Boolean)
     .slice(0, 8)
-}
-
-function displayNameFromDraft(draft: OnboardingDraft) {
-  return draft.username.trim() || draft.firstName.trim()
 }
 
 function validateEmailAuthRequest(request: EmailAuthRequest) {
@@ -722,7 +633,7 @@ function App() {
   const [remoteState, setRemoteState] =
     useState<RemoteState>(REMOTE_STATE_EMPTY)
   const [currentUserId, setCurrentUserId] = useState<string | null>(
-    session?.backend === 'supabase' ? session.userId ?? null : null,
+    session?.userId ?? null,
   )
   const [authEmail, setAuthEmail] = useState(session?.email ?? '')
   const [onboardingUserId, setOnboardingUserId] = useState<string | null>(null)
@@ -735,18 +646,8 @@ function App() {
   const [draftMessage, setDraftMessage] = useState('')
   const [notice, setNotice] = useState('')
   const [invitePurpose, setInvitePurpose] = useState('Nuovo invito privato')
-  const [backendStatus, setBackendStatus] = useState<BackendStatus>(
-    isSupabaseConfigured ? 'checking' : 'missing',
-  )
-  const [backendDetail, setBackendDetail] = useState(
-    isSupabaseConfigured
-      ? 'Controllo configurazione Supabase.'
-      : 'App pronta in modalita locale.',
-  )
   const [profileSaving, setProfileSaving] = useState(false)
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [disclaimerState, setDisclaimerState] =
-    useState<DisclaimerState | null>(null)
+  const [disclaimerKey, setDisclaimerKey] = useState('')
   const [showDisclaimer, setShowDisclaimer] = useState(false)
 
   const refreshRemoteData = useCallback(
@@ -754,8 +655,6 @@ function App() {
       if (!supabase) {
         return
       }
-
-      setIsSyncing(true)
 
       try {
         const [profilesResult, likesResult, matchesResult, invitesResult] =
@@ -780,165 +679,128 @@ function App() {
               .order('created_at', { ascending: false }),
           ])
 
-        if (profilesResult.error) {
-          throw profilesResult.error
+        if (
+          profilesResult.error ||
+          likesResult.error ||
+          matchesResult.error ||
+          invitesResult.error
+        ) {
+          throw (
+            profilesResult.error ??
+            likesResult.error ??
+            matchesResult.error ??
+            invitesResult.error
+          )
         }
 
-        if (likesResult.error) {
-          throw likesResult.error
-        }
-
-        if (matchesResult.error) {
-          throw matchesResult.error
-        }
-
-        if (invitesResult.error) {
-          throw invitesResult.error
-        }
-
-        const likeRows = (likesResult.data ?? []) as RemoteLikeRow[]
+        const likesRows = (likesResult.data ?? []) as RemoteLikeRow[]
         const matchRows = (matchesResult.data ?? []) as RemoteMatchRow[]
-        const inviteRows = (invitesResult.data ?? []) as RemoteInviteRow[]
-        const profileRows = (profilesResult.data ?? []) as RemoteProfileRow[]
-
         const likedByIds = new Set(
-          likeRows
+          likesRows
             .filter((like) => like.to_profile === userId)
             .map((like) => like.from_profile),
         )
-        const outboundLikedIds = likeRows
+        const savedLikedIds = likesRows
           .filter((like) => like.from_profile === userId)
           .map((like) => like.to_profile)
         const matchByProfileId = matchRows.reduce<Record<string, string>>(
-          (records, match) => {
-            const otherId =
+          (matchesByProfile, match) => {
+            const otherProfile =
               match.profile_a === userId ? match.profile_b : match.profile_a
-            records[otherId] = match.id
-            return records
+            matchesByProfile[otherProfile] = match.id
+            return matchesByProfile
           },
           {},
         )
-        const remoteProfiles = profileRows.map((row) =>
-          rowToProfile(row, viewerCity, likedByIds, matchByProfileId),
+        const remoteProfiles = ((profilesResult.data ?? []) as RemoteProfileRow[])
+          .map((row) => rowToProfile(row, viewerCity, likedByIds, matchByProfileId))
+          .sort((a, b) => a.distance - b.distance)
+        const remoteInvites = ((invitesResult.data ?? []) as RemoteInviteRow[]).map(
+          (invite) => ({
+            id: invite.id,
+            code: invite.code,
+            purpose: invite.purpose,
+            createdAt: formatShortDate(invite.created_at),
+            used: Boolean(invite.used_by),
+            createdBy: invite.created_by,
+            usedBy: invite.used_by,
+          }),
         )
+        const matchIds = matchRows.map((match) => match.id)
+        const messageMap: Record<string, Message[]> = {}
 
-        let remoteMessages: Record<string, Message[]> = {}
-
-        if (matchRows.length) {
-          const { data: messageRows, error: messagesError } = await supabase
+        if (matchIds.length) {
+          const messagesResult = await supabase
             .from('messages')
             .select('id, match_id, sender_id, body, created_at')
-            .in(
-              'match_id',
-              matchRows.map((match) => match.id),
-            )
+            .in('match_id', matchIds)
             .order('created_at', { ascending: true })
 
-          if (messagesError) {
-            throw messagesError
+          if (messagesResult.error) {
+            throw messagesResult.error
           }
 
-          const profileIdByMatchId = matchRows.reduce<Record<string, string>>(
-            (records, match) => {
-              records[match.id] =
-                match.profile_a === userId ? match.profile_b : match.profile_a
-              return records
+          ;((messagesResult.data ?? []) as RemoteMessageRow[]).forEach(
+            (message) => {
+              messageMap[message.match_id] = [
+                ...(messageMap[message.match_id] ?? []),
+                {
+                  id: message.id,
+                  from: message.sender_id === userId ? 'me' : 'them',
+                  text: message.body,
+                  time: nowTime(new Date(message.created_at)),
+                },
+              ]
             },
-            {},
           )
-
-          remoteMessages = ((messageRows ?? []) as RemoteMessageRow[]).reduce<
-            Record<string, Message[]>
-          >((records, message) => {
-            const profileId = profileIdByMatchId[message.match_id]
-
-            if (!profileId) {
-              return records
-            }
-
-            records[profileId] = [
-              ...(records[profileId] ?? []),
-              {
-                id: message.id,
-                from: message.sender_id === userId ? 'me' : 'them',
-                text: message.body,
-                time: nowTime(new Date(message.created_at)),
-              },
-            ]
-
-            return records
-          }, {})
         }
 
         setRemoteState({
           profiles: remoteProfiles,
-          likedIds: outboundLikedIds,
-          matchedIds: matchRows.map((match) =>
-            match.profile_a === userId ? match.profile_b : match.profile_a,
-          ),
-          invites: inviteRows
-            .filter((invite) => invite.created_by === userId)
-            .map((invite) => ({
-              id: invite.id,
-              code: invite.code,
-              purpose: invite.purpose,
-              createdAt: formatShortDate(invite.created_at),
-              used: Boolean(invite.used_by),
-              createdBy: invite.created_by,
-              usedBy: invite.used_by,
-            })),
-          messages: remoteMessages,
+          likedIds: savedLikedIds,
+          matchedIds: Object.keys(matchByProfileId),
+          invites: remoteInvites,
+          messages: messageMap,
           matchByProfileId,
         })
-        setBackendStatus('connected')
-        setBackendDetail('Dati sincronizzati con Supabase.')
       } catch (error) {
         console.error(error)
-        setBackendStatus('error')
-        setBackendDetail('Schema o variabili Supabase da verificare.')
-      } finally {
-        setIsSyncing(false)
       }
     },
     [ownProfile.city],
   )
 
-  const loadProfileForUser = useCallback(
+  const loadAccount = useCallback(
     async (userId: string, email = '') => {
       if (!supabase) {
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(PROFILE_SELECT)
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (error) {
+        console.error(error)
         return
       }
 
       setCurrentUserId(userId)
       setAuthEmail(email)
 
-      const { data: profileRow, error: profileError } = await supabase
-        .from('profiles')
-        .select(PROFILE_SELECT)
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (profileError) {
-        setBackendStatus('error')
-        setBackendDetail('Profilo Supabase non leggibile.')
-        return
-      }
-
-      if (!profileRow) {
+      if (!data) {
         setSession(null)
         setOnboardingUserId(userId)
-        setBackendStatus('connected')
-        setBackendDetail('Completa il profilo per entrare.')
         return
       }
 
-      const restoredProfile = rowToOwnProfile(profileRow as RemoteProfileRow)
-      setOwnProfile(restoredProfile)
+      const profile = rowToOwnProfile(data as RemoteProfileRow)
+      setOwnProfile(profile)
+      setSession(ownProfileToSession(profile, 'EMAIL', userId, email))
       setOnboardingUserId(null)
-      setSession(
-        ownProfileToSession(restoredProfile, 'EMAIL-LOGIN', userId, email),
-      )
-      await refreshRemoteData(userId, restoredProfile.city)
+      await refreshRemoteData(userId, profile.city)
     },
     [refreshRemoteData, setOwnProfile, setSession],
   )
@@ -946,253 +808,173 @@ function App() {
   useEffect(() => {
     let cancelled = false
 
-    async function loadDisclaimerState() {
-      const fallbackKey = `local-${new Date().toISOString().slice(0, 10)}`
-
-      try {
-        const response = await fetch('/api/disclaimer-key', {
-          cache: 'no-store',
-        })
-
-        if (!response.ok) {
-          throw new Error('Disclaimer API unavailable')
-        }
-
-        const payload = (await response.json()) as { key?: string }
-        const key = payload.key || fallbackKey
-        const storageKey = `cerchiami.disclaimer.${key}`
-        const shouldShow = window.localStorage.getItem(storageKey) !== 'ok'
-
-        if (!cancelled) {
-          setDisclaimerState({ key, shouldShow })
-          setShowDisclaimer(shouldShow)
-        }
-      } catch {
-        const storageKey = `cerchiami.disclaimer.${fallbackKey}`
-        const shouldShow = window.localStorage.getItem(storageKey) !== 'ok'
-
-        if (!cancelled) {
-          setDisclaimerState({ key: fallbackKey, shouldShow })
-          setShowDisclaimer(shouldShow)
-        }
-      }
-    }
-
-    void loadDisclaimerState()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-
     async function restoreSupabaseSession() {
       if (!supabase) {
-        setBackendStatus('missing')
-        setBackendDetail('App pronta in modalita locale.')
         return
       }
 
       const { data, error } = await supabase.auth.getSession()
 
-      if (cancelled) {
+      if (cancelled || error) {
         return
       }
 
-      if (error) {
-        setBackendStatus('error')
-        setBackendDetail('Sessione Supabase non leggibile.')
-        return
+      const user = data.session?.user
+
+      if (user) {
+        await loadAccount(user.id, user.email ?? '')
       }
-
-      const userId = data.session?.user.id
-      const email = data.session?.user.email ?? ''
-
-      if (!userId) {
-        setBackendStatus((current) =>
-          current === 'error' ? current : 'connected',
-        )
-        setBackendDetail((current) =>
-          current.includes('Anonymous') || current.includes('schema')
-            ? current
-            : 'Backend pronto, accesso non ancora eseguito.',
-        )
-        return
-      }
-
-      await loadProfileForUser(userId, email)
     }
 
     void restoreSupabaseSession()
 
+    const authListener = supabase?.auth.onAuthStateChange((_event, nextSession) => {
+      const user = nextSession?.user
+
+      if (user) {
+        void loadAccount(user.id, user.email ?? '')
+        return
+      }
+
+      setCurrentUserId(null)
+      setRemoteState(REMOTE_STATE_EMPTY)
+    })
+
     return () => {
       cancelled = true
+      authListener?.data.subscription.unsubscribe()
     }
-  }, [loadProfileForUser])
+  }, [loadAccount])
 
-  const profiles = useMemo(() => {
-    const remoteIds = new Set(remoteState.profiles.map((profile) => profile.id))
-    return [
-      ...remoteState.profiles,
-      ...PEOPLE.filter((profile) => !remoteIds.has(profile.id)),
-    ]
-  }, [remoteState.profiles])
+  useEffect(() => {
+    async function loadDisclaimerKey() {
+      const today = new Date().toISOString().slice(0, 10)
+      let key = `cerchiami-${today}`
 
-  const combinedLikedIds = useMemo(
-    () => unique([...likedIds, ...remoteState.likedIds]),
-    [likedIds, remoteState.likedIds],
-  )
+      try {
+        const response = await fetch('/api/disclaimer-key')
 
-  const combinedMatchedIds = useMemo(
-    () => unique([...matchedIds, ...remoteState.matchedIds]),
-    [matchedIds, remoteState.matchedIds],
-  )
+        if (response.ok) {
+          const payload = (await response.json()) as { key?: string }
+          key = payload.key || key
+        }
+      } catch {
+        key = `cerchiami-local-${today}`
+      }
 
-  const combinedInvites = useMemo(
-    () => [...remoteState.invites, ...invites],
-    [invites, remoteState.invites],
-  )
+      setDisclaimerKey(key)
+      setShowDisclaimer(window.localStorage.getItem(`disclaimer:${key}`) !== 'ok')
+    }
 
-  const matchingProfiles = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase()
-
-    return profiles.filter((profile) => {
-      const text = [
-        profile.name,
-        profile.city,
-        profile.role,
-        profile.bio,
-        profile.tags.join(' '),
-      ]
-        .join(' ')
-        .toLowerCase()
-
-      return (
-        profile.sections.includes(activeSection) &&
-        profile.distance <= maxDistance &&
-        (!availableOnly || profile.availableToday) &&
-        (!normalizedQuery || text.includes(normalizedQuery))
-      )
-    })
-  }, [activeSection, availableOnly, maxDistance, profiles, query])
-
-  const matchedProfiles = useMemo(
-    () =>
-      profiles
-        .filter((profile) => combinedMatchedIds.includes(profile.id))
-        .sort(
-          (first, second) =>
-            combinedMatchedIds.indexOf(first.id) -
-            combinedMatchedIds.indexOf(second.id),
-        ),
-    [combinedMatchedIds, profiles],
-  )
-
-  const selectedMatch =
-    matchedProfiles.find((profile) => profile.id === selectedMatchId) ??
-    matchedProfiles[0] ??
-    null
+    void loadDisclaimerKey()
+  }, [])
 
   const activeMeta = SECTION_META[activeSection]
-  const isNightLocked = activeSection === 'night' && !nightAccepted
-  const selectedMessages = selectedMatch
-    ? selectedMatch.source === 'remote'
-      ? remoteState.messages[selectedMatch.id] ?? []
+  const allProfiles = useMemo(() => {
+    const remoteIds = new Set(remoteState.profiles.map((profile) => profile.id))
+    return [...remoteState.profiles, ...PEOPLE.filter((profile) => !remoteIds.has(profile.id))]
+  }, [remoteState.profiles])
+  const effectiveLikedIds = unique([...likedIds, ...remoteState.likedIds])
+  const effectiveMatchedIds = unique([...matchedIds, ...remoteState.matchedIds])
+  const visibleProfiles = useMemo(
+    () =>
+      allProfiles.filter((profile) => {
+        const matchesSection = profile.sections.includes(activeSection)
+        const matchesQuery =
+          !query.trim() ||
+          `${profile.name} ${profile.city} ${profile.role} ${profile.tags.join(' ')}`
+            .toLowerCase()
+            .includes(query.toLowerCase())
+
+        return (
+          matchesSection &&
+          matchesQuery &&
+          profile.distance <= maxDistance &&
+          (!availableOnly || profile.availableToday)
+        )
+      }),
+    [activeSection, allProfiles, availableOnly, maxDistance, query],
+  )
+  const matchProfiles = allProfiles.filter(
+    (profile) =>
+      effectiveMatchedIds.includes(profile.id) ||
+      (effectiveLikedIds.includes(profile.id) && profile.likedYou),
+  )
+  const selectedMatch =
+    matchProfiles.find((profile) => profile.id === selectedMatchId) ??
+    matchProfiles[0] ??
+    null
+  const selectedRemoteMatchId = selectedMatch
+    ? selectedMatch.matchId ?? remoteState.matchByProfileId[selectedMatch.id]
+    : undefined
+  const currentMessages = selectedMatch
+    ? selectedMatch.source === 'remote' && selectedRemoteMatchId
+      ? remoteState.messages[selectedRemoteMatchId] ?? []
       : messages[selectedMatch.id] ?? []
     : []
-  const visibleBackendStatus =
-    session?.backend === 'local' && backendStatus !== 'syncing'
-      ? 'missing'
-      : backendStatus
-  const visibleBackendDetail =
-    session?.backend === 'local' && backendStatus !== 'syncing'
-      ? 'Dati salvati in questo browser. Supabase si attiva appena configurato.'
-      : backendDetail
 
   async function saveProfileToSupabase(userId: string, profile: OwnProfile) {
     if (!supabase) {
-      return
+      throw new Error('Accesso non disponibile')
     }
 
-    const { error } = await supabase.from('profiles').upsert(
-      {
-        id: userId,
-        first_name: profile.firstName.trim(),
-        last_name: profile.lastName.trim(),
-        username: normalizeUsername(profile.username),
-        birth_date: profile.birthDate || null,
-        gender: profile.gender,
-        relationship_goal: profile.relationshipGoal,
-        interests: profile.interests,
-        display_name: profile.displayName.trim(),
-        age: Math.max(18, profile.age),
-        city: profile.city.trim(),
-        bio: profile.bio.trim(),
-        availability: profile.availability.trim(),
-        sections: profile.sections,
-        visibility: profile.visibility,
-      },
-      { onConflict: 'id' },
-    )
+    const payload = {
+      id: userId,
+      first_name: profile.firstName.trim(),
+      last_name: profile.lastName.trim(),
+      username: normalizeUsername(profile.username),
+      birth_date: profile.birthDate || null,
+      gender: profile.gender,
+      relationship_goal: profile.relationshipGoal,
+      interests: profile.interests,
+      display_name: profile.displayName.trim(),
+      age: profile.age,
+      city: profile.city.trim(),
+      bio: profile.bio.trim(),
+      availability: profile.availability.trim(),
+      sections: profile.sections,
+      visibility: profile.visibility,
+      updated_at: new Date().toISOString(),
+    }
+    const { error } = await supabase.from('profiles').upsert(payload)
 
     if (error) {
       throw error
     }
   }
 
-  async function claimInviteCode(
-    code: string,
-    userId: string,
-    localInviteValid: boolean,
-    markUsed = true,
-  ) {
+  async function claimInvite(code: string, userId: string) {
     if (BASE_INVITES.includes(code)) {
       return { ok: true }
     }
 
     if (!supabase) {
-      return { ok: localInviteValid, message: 'Codice invito non valido.' }
+      return { ok: false, message: 'Accesso non disponibile in questo momento.' }
     }
 
-    const { data: invite, error } = await supabase
+    const { data, error } = await supabase
       .from('invites')
-      .select('id, code, used_by')
+      .select('id, used_by')
       .eq('code', code)
       .maybeSingle()
 
-    if (error) {
-      return localInviteValid
-        ? { ok: true }
-        : { ok: false, message: 'Codice invito non verificabile.' }
+    if (error || !data) {
+      return { ok: false, message: 'Codice invito non valido.' }
     }
 
-    if (!invite) {
-      return localInviteValid
-        ? { ok: true }
-        : { ok: false, message: 'Codice invito non valido.' }
-    }
+    const invite = data as { id: string; used_by: string | null }
 
-    const remoteInvite = invite as { id: string; used_by: string | null }
-
-    if (remoteInvite.used_by && remoteInvite.used_by !== userId) {
+    if (invite.used_by && invite.used_by !== userId) {
       return { ok: false, message: 'Codice invito gia utilizzato.' }
     }
 
-    if (!remoteInvite.used_by && markUsed) {
-      const { error: updateError } = await supabase
-        .from('invites')
-        .update({ used_by: userId, used_at: new Date().toISOString() })
-        .eq('id', remoteInvite.id)
-        .is('used_by', null)
+    const { error: updateError } = await supabase
+      .from('invites')
+      .update({ used_by: userId, used_at: new Date().toISOString() })
+      .eq('id', invite.id)
 
-      if (updateError) {
-        return {
-          ok: false,
-          message: 'Codice valido, ma non riesco a marcarlo come usato.',
-        }
-      }
+    if (updateError) {
+      return { ok: false, message: 'Codice invito non confermato.' }
     }
 
     return { ok: true }
@@ -1206,20 +988,11 @@ function App() {
     }
 
     if (!supabase) {
-      setBackendStatus('missing')
-      setBackendDetail('Supabase non configurato per questo deploy.')
-      return 'Login email non disponibile: manca la configurazione Supabase.'
+      return 'Accesso non disponibile in questo momento. Riprova piu tardi.'
     }
 
     const email = request.email.trim()
-
     setAuthEmail(email)
-    setBackendStatus('syncing')
-    setBackendDetail(
-      request.mode === 'signup'
-        ? 'Creo account email su Supabase.'
-        : 'Accesso email in corso su Supabase.',
-    )
 
     try {
       const { data, error } =
@@ -1234,74 +1007,53 @@ function App() {
             })
 
       if (error) {
-        const captchaBlocked = /captcha/i.test(error.message)
-        setBackendStatus('error')
-        setBackendDetail(
-          captchaBlocked
-            ? 'Captcha Supabase attivo: serve disattivarlo o integrare un token.'
-            : 'Auth Supabase ha rifiutato le credenziali.',
-        )
-        return captchaBlocked
-          ? 'Supabase Auth ha Captcha attivo: disattivalo o configura un captcha token.'
+        return /captcha/i.test(error.message)
+          ? 'Registrazione temporaneamente non disponibile. Riprova piu tardi.'
           : error.message
       }
 
       const user = data.session?.user ?? data.user
 
       if (!data.session || !user) {
-        setBackendStatus('connected')
-        setBackendDetail('Controlla la email e poi fai login.')
         return 'Account creato: conferma la email, poi entra con la stessa password.'
       }
 
-      await loadProfileForUser(user.id, user.email ?? email)
+      await loadAccount(user.id, user.email ?? email)
       return null
     } catch (error) {
       console.error(error)
-      setBackendStatus('error')
-      setBackendDetail('Login email non completato.')
       return 'Accesso non completato.'
     }
   }
 
-  async function completeOnboarding(draft: OnboardingDraft) {
+  async function handleOnboardingSubmit(draft: OnboardingDraft) {
     const validationError = validateOnboardingDraft(draft)
+    const userId = onboardingUserId ?? currentUserId
 
     if (validationError) {
       return validationError
     }
 
-    const userId = onboardingUserId ?? currentUserId
-
-    if (!supabase || !userId) {
-      return 'Sessione Supabase non trovata: rifai il login email.'
+    if (!userId) {
+      return 'Sessione scaduta: rifai il login email.'
     }
 
     const normalizedCode = draft.inviteCode.trim().toUpperCase()
-    const localInviteValid = isLocalInviteValid(normalizedCode, invites)
-    const preflightInvite = await claimInviteCode(
-      normalizedCode,
-      userId,
-      localInviteValid,
-      false,
-    )
+    const inviteResult = await claimInvite(normalizedCode, userId)
 
-    if (!preflightInvite.ok) {
-      setBackendStatus('connected')
-      setBackendDetail('Backend pronto, codice invito rifiutato.')
-      return preflightInvite.message ?? 'Codice invito non valido.'
+    if (!inviteResult.ok) {
+      return inviteResult.message ?? 'Codice invito non valido.'
     }
 
-    const username = normalizeUsername(draft.username)
     const profile: OwnProfile = {
       firstName: draft.firstName.trim(),
       lastName: draft.lastName.trim(),
-      username,
+      username: normalizeUsername(draft.username),
       birthDate: draft.birthDate,
       gender: draft.gender,
       relationshipGoal: draft.relationshipGoal,
       interests: parseInterests(draft.interests),
-      displayName: displayNameFromDraft({ ...draft, username }),
+      displayName: draft.username.trim() || draft.firstName.trim(),
       age: calculateAge(draft.birthDate),
       city: draft.city.trim(),
       bio: draft.bio.trim(),
@@ -1310,174 +1062,101 @@ function App() {
       visibility: draft.visibility,
     }
 
-    setBackendStatus('syncing')
-    setBackendDetail('Completo profilo e invito su Supabase.')
-
     try {
       await saveProfileToSupabase(userId, profile)
-
-      const inviteClaim = await claimInviteCode(
-        normalizedCode,
-        userId,
-        localInviteValid,
-      )
-
-      if (!inviteClaim.ok) {
-        return inviteClaim.message ?? 'Codice invito non valido.'
-      }
-
       setOwnProfile(profile)
+      setSession(ownProfileToSession(profile, normalizedCode, userId, authEmail))
       setCurrentUserId(userId)
       setOnboardingUserId(null)
-      setSession(ownProfileToSession(profile, normalizedCode, userId, authEmail))
-      setInvites((current) =>
-        current.map((invite) =>
-          invite.code.toUpperCase() === normalizedCode
-            ? { ...invite, used: true }
-            : invite,
-        ),
-      )
+      setNotice('Profilo completato.')
       await refreshRemoteData(userId, profile.city)
-      setNotice('Profilo completato e sincronizzato.')
       return null
     } catch (error) {
       console.error(error)
-      setBackendStatus('error')
-      setBackendDetail('Esegui lo schema SQL aggiornato su Supabase.')
-
-      return 'Profilo non salvato su Supabase.'
+      return 'Profilo non salvato. Riprova tra poco.'
     }
   }
 
-  function createIntroMessage(profile: Profile) {
-    setMessages((current) => {
-      if (current[profile.id]?.length) {
-        return current
-      }
+  function acceptDisclaimer() {
+    if (disclaimerKey) {
+      window.localStorage.setItem(`disclaimer:${disclaimerKey}`, 'ok')
+    }
 
-      return {
-        ...current,
-        [profile.id]: [
-          {
-            id: `${profile.id}-intro`,
-            from: 'them',
-            text: `Ciao, sono ${profile.name}. Mi va di capire se siamo sulla stessa lunghezza d'onda.`,
-            time: nowTime(),
-          },
-        ],
-      }
-    })
+    setShowDisclaimer(false)
   }
 
-  async function likeRemoteProfile(profile: Profile) {
-    if (!supabase || !currentUserId) {
-      return false
-    }
-
-    const { data, error } = await supabase.rpc('like_profile', {
-      target_profile: profile.id,
-      target_section: activeSection,
-    })
-
-    if (error) {
-      const { error: insertError } = await supabase.from('likes').upsert(
-        {
-          from_profile: currentUserId,
-          to_profile: profile.id,
-          section: activeSection,
-        },
-        { onConflict: 'from_profile,to_profile,section' },
-      )
-
-      if (insertError) {
-        throw insertError
-      }
-
-      const { data: reverseLike } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('from_profile', profile.id)
-        .eq('to_profile', currentUserId)
-        .eq('section', activeSection)
-        .maybeSingle()
-
-      if (reverseLike) {
-        const [profileA, profileB] = [currentUserId, profile.id].sort()
-        await supabase.from('matches').upsert(
-          {
-            profile_a: profileA,
-            profile_b: profileB,
-            section: activeSection,
-          },
-          { onConflict: 'profile_a,profile_b,section' },
-        )
-      }
-
-      await refreshRemoteData(currentUserId)
-      return Boolean(reverseLike)
-    }
-
-    await refreshRemoteData(currentUserId)
-    const rows = (data ?? []) as Array<{ match_id: string | null }>
-    return rows.some((row) => row.match_id)
+  async function logout() {
+    await supabase?.auth.signOut()
+    setSession(null)
+    setCurrentUserId(null)
+    setOnboardingUserId(null)
+    setRemoteState(REMOTE_STATE_EMPTY)
   }
 
   async function likeProfile(profile: Profile) {
     if (profile.source === 'remote' && currentUserId && supabase) {
-      setBackendStatus('syncing')
-      setBackendDetail('Salvo interesse su Supabase.')
-
       try {
-        const matched = await likeRemoteProfile(profile)
+        const targetSection = profile.sections.includes(activeSection)
+          ? activeSection
+          : profile.sections[0]
+        const { data, error } = await supabase.rpc('like_profile', {
+          target_profile: profile.id,
+          target_section: targetSection,
+        })
+
+        if (error) {
+          throw error
+        }
+
+        const matchId = Array.isArray(data)
+          ? (data[0] as { match_id: string | null } | undefined)?.match_id
+          : null
+
         setRemoteState((current) => ({
           ...current,
           likedIds: unique([...current.likedIds, profile.id]),
+          matchedIds: matchId
+            ? unique([...current.matchedIds, profile.id])
+            : current.matchedIds,
+          matchByProfileId: matchId
+            ? { ...current.matchByProfileId, [profile.id]: matchId }
+            : current.matchByProfileId,
         }))
-
-        if (matched || profile.likedYou) {
-          setSelectedMatchId(profile.id)
-          setActiveView('matches')
-          setNotice(`Match con ${profile.name}.`)
-        } else {
-          setNotice(`Interesse salvato per ${profile.name}.`)
-        }
-
-        setBackendStatus('connected')
-        setBackendDetail('Dati sincronizzati con Supabase.')
+        setNotice(matchId ? `Match con ${profile.name}.` : `Interesse salvato per ${profile.name}.`)
+        await refreshRemoteData(currentUserId)
       } catch (error) {
         console.error(error)
-        setBackendStatus('error')
-        setBackendDetail('Interesse non salvato su Supabase.')
-        setNotice('Non riesco a salvare questo interesse.')
+        setNotice('Non riesco a salvare questo interesse adesso.')
       }
 
       return
     }
 
-    setLikedIds((current) =>
-      current.includes(profile.id) ? current : [...current, profile.id],
-    )
-    setPassedIds((current) => current.filter((id) => id !== profile.id))
+    setLikedIds((current) => unique([...current, profile.id]))
 
     if (profile.likedYou) {
-      setMatchedIds((current) =>
-        current.includes(profile.id) ? current : [profile.id, ...current],
-      )
-      createIntroMessage(profile)
+      setMatchedIds((current) => unique([...current, profile.id]))
       setSelectedMatchId(profile.id)
       setActiveView('matches')
+      setMessages((current) => ({
+        ...current,
+        [profile.id]: current[profile.id] ?? [
+          {
+            id: `${profile.id}-hello`,
+            from: 'them',
+            text: `Ciao, sono ${profile.name}. Mi fa piacere il match.`,
+            time: nowTime(),
+          },
+        ],
+      }))
       setNotice(`Match con ${profile.name}.`)
-      return
+    } else {
+      setNotice(`Interesse salvato per ${profile.name}.`)
     }
-
-    setNotice(`Interesse salvato per ${profile.name}.`)
   }
 
   function passProfile(profile: Profile) {
-    setPassedIds((current) =>
-      current.includes(profile.id) ? current : [...current, profile.id],
-    )
-    setNotice(`${profile.name} fuori dalla selezione attiva.`)
+    setPassedIds((current) => unique([...current, profile.id]))
   }
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
@@ -1488,60 +1167,56 @@ function App() {
     }
 
     const text = draftMessage.trim()
+    setDraftMessage('')
 
     if (
       selectedMatch.source === 'remote' &&
-      selectedMatch.matchId &&
+      selectedRemoteMatchId &&
       currentUserId &&
       supabase
     ) {
-      const optimisticMessage: Message = {
-        id: `${selectedMatch.id}-${Date.now()}`,
-        from: 'me',
-        text,
-        time: nowTime(),
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          match_id: selectedRemoteMatchId,
+          sender_id: currentUserId,
+          body: text,
+        })
+        .select('id, created_at')
+        .single()
+
+      if (error) {
+        console.error(error)
+        setNotice('Messaggio non inviato. Riprova tra poco.')
+        return
       }
 
+      const row = data as { id: string; created_at: string }
       setRemoteState((current) => ({
         ...current,
         messages: {
           ...current.messages,
-          [selectedMatch.id]: [
-            ...(current.messages[selectedMatch.id] ?? []),
-            optimisticMessage,
+          [selectedRemoteMatchId]: [
+            ...(current.messages[selectedRemoteMatchId] ?? []),
+            {
+              id: row.id,
+              from: 'me',
+              text,
+              time: nowTime(new Date(row.created_at)),
+            },
           ],
         },
       }))
-      setDraftMessage('')
-
-      const { error } = await supabase.from('messages').insert({
-        match_id: selectedMatch.matchId,
-        sender_id: currentUserId,
-        body: text,
-      })
-
-      if (error) {
-        console.error(error)
-        setNotice('Messaggio non salvato su Supabase.')
-        return
-      }
-
-      await refreshRemoteData(currentUserId)
       return
-    }
-
-    const nextMessage: Message = {
-      id: `${selectedMatch.id}-${Date.now()}`,
-      from: 'me',
-      text,
-      time: nowTime(),
     }
 
     setMessages((current) => ({
       ...current,
-      [selectedMatch.id]: [...(current[selectedMatch.id] ?? []), nextMessage],
+      [selectedMatch.id]: [
+        ...(current[selectedMatch.id] ?? []),
+        { id: `${selectedMatch.id}-${Date.now()}`, from: 'me', text, time: nowTime() },
+      ],
     }))
-    setDraftMessage('')
   }
 
   async function createInvite() {
@@ -1549,170 +1224,101 @@ function App() {
     const purpose = invitePurpose.trim() || 'Nuovo invito privato'
 
     if (supabase && currentUserId) {
-      setBackendStatus('syncing')
-      setBackendDetail('Creo invito su Supabase.')
-
       const { data, error } = await supabase
         .from('invites')
-        .insert({
-          code,
-          purpose,
-          created_by: currentUserId,
-        })
-        .select('id, code, purpose, created_at, used_by, used_at, created_by')
+        .insert({ code, purpose, created_by: currentUserId })
+        .select('id, code, purpose, created_at, used_by, created_by')
         .single()
 
       if (error) {
         console.error(error)
-        setBackendStatus('error')
-        setBackendDetail('Invito non creato su Supabase.')
-        setNotice('Invito non creato: controlla policy Supabase.')
+        setNotice('Invito non creato. Riprova tra poco.')
         return
       }
 
-      const invite = data as RemoteInviteRow
-
+      const row = data as RemoteInviteRow
       setRemoteState((current) => ({
         ...current,
         invites: [
           {
-            id: invite.id,
-            code: invite.code,
-            purpose: invite.purpose,
-            createdAt: formatShortDate(invite.created_at),
-            used: false,
-            createdBy: invite.created_by,
-            usedBy: invite.used_by,
+            id: row.id,
+            code: row.code,
+            purpose: row.purpose,
+            createdAt: formatShortDate(row.created_at),
+            used: Boolean(row.used_by),
+            createdBy: row.created_by,
+            usedBy: row.used_by,
           },
           ...current.invites,
         ],
       }))
-      setInvitePurpose('Nuovo invito privato')
-      setBackendStatus('connected')
-      setBackendDetail('Dati sincronizzati con Supabase.')
-      setNotice(`Invito creato: ${code}`)
-      return
+    } else {
+      setInvites((current) => [
+        {
+          code,
+          purpose,
+          createdAt: formatShortDate(new Date()),
+          used: false,
+        },
+        ...current,
+      ])
     }
 
-    const invite: Invite = {
-      code,
-      purpose,
-      createdAt: formatShortDate(new Date()),
-      used: false,
-    }
-
-    setInvites((current) => [invite, ...current])
     setInvitePurpose('Nuovo invito privato')
-    setNotice(`Invito creato: ${invite.code}`)
+    setNotice(`Invito creato: ${code}`)
   }
 
   async function copyInvite(code: string) {
-    try {
-      await navigator.clipboard.writeText(code)
-      setNotice(`Codice copiato: ${code}`)
-    } catch {
-      setNotice(code)
-    }
+    await navigator.clipboard.writeText(code)
+    setNotice(`Codice copiato: ${code}`)
   }
 
   async function saveOwnProfile() {
-    if (!ownProfile.displayName.trim() || !ownProfile.city.trim()) {
-      setNotice('Nome pubblico e citta sono obbligatori.')
+    if (!session) {
       return
     }
 
-    if (
-      ownProfile.username &&
-      normalizeUsername(ownProfile.username).length < 3
-    ) {
-      setNotice('Username troppo corto.')
-      return
-    }
-
-    if (ownProfile.birthDate && calculateAge(ownProfile.birthDate) < 18) {
-      setNotice('Il profilo deve essere maggiorenne.')
-      return
+    const profileToSave = {
+      ...ownProfile,
+      username: normalizeUsername(ownProfile.username),
+      displayName: ownProfile.displayName.trim() || session.name,
+      city: ownProfile.city.trim() || session.city,
     }
 
     setProfileSaving(true)
 
     try {
-      const profileToSave = {
-        ...ownProfile,
-        username: normalizeUsername(ownProfile.username),
-        age: ownProfile.birthDate
-          ? calculateAge(ownProfile.birthDate)
-          : ownProfile.age,
-      }
-
-      if (supabase && currentUserId) {
+      if (currentUserId) {
         await saveProfileToSupabase(currentUserId, profileToSave)
         await refreshRemoteData(currentUserId, profileToSave.city)
-        setBackendStatus('connected')
-        setBackendDetail('Profilo sincronizzato con Supabase.')
       }
 
       setOwnProfile(profileToSave)
-      setSession((current) =>
-        current
-          ? {
-              ...current,
-              name: profileToSave.displayName,
-              age: profileToSave.age,
-              city: profileToSave.city,
-            }
-          : current,
-      )
+      setSession({
+        ...session,
+        name: profileToSave.displayName,
+        city: profileToSave.city,
+        age: profileToSave.age,
+      })
       setNotice('Profilo salvato.')
     } catch (error) {
       console.error(error)
-      setBackendStatus('error')
-      setBackendDetail('Profilo non sincronizzato.')
-      setNotice('Profilo salvato solo in locale.')
+      setNotice('Profilo non salvato. Riprova tra poco.')
     } finally {
       setProfileSaving(false)
     }
-  }
-
-  async function logout() {
-    if (supabase) {
-      await supabase.auth.signOut()
-    }
-
-    setSession(null)
-    setCurrentUserId(null)
-    setOnboardingUserId(null)
-    setRemoteState(REMOTE_STATE_EMPTY)
-    setActiveView('discover')
-    setSelectedMatchId(null)
-  }
-
-  function acceptDisclaimer() {
-    if (disclaimerState) {
-      window.localStorage.setItem(
-        `cerchiami.disclaimer.${disclaimerState.key}`,
-        'ok',
-      )
-    }
-
-    setShowDisclaimer(false)
   }
 
   if (!session) {
     return (
       <>
         {onboardingUserId ? (
-          <AccountOnboarding
-            email={authEmail}
-            onComplete={completeOnboarding}
-            onLogout={logout}
+          <OnboardingFlow
+            initialEmail={authEmail}
+            onSubmit={handleOnboardingSubmit}
           />
         ) : (
-          <EmailAccess
-            onSubmit={handleEmailAuth}
-            backendStatus={backendStatus}
-            backendDetail={backendDetail}
-          />
+          <EmailAccess onSubmit={handleEmailAuth} />
         )}
         {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
       </>
@@ -1720,16 +1326,24 @@ function App() {
   }
 
   return (
-    <>
-      <div className="app-shell">
+    <main className="app-shell">
+      {notice && (
+        <div className="notice" role="status">
+          <span>{notice}</span>
+          <button type="button" onClick={() => setNotice('')} aria-label="Chiudi">
+            <X size={18} />
+          </button>
+        </div>
+      )}
+
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true">
             <Users size={21} />
           </div>
           <div>
-            <p className="eyebrow">CerchiaMi</p>
-            <h1>Cerchie private</h1>
+            <h1>CerchiaMi</h1>
+            <p>Incontri privati, semplici, intenzionali.</p>
           </div>
         </div>
 
@@ -1738,14 +1352,14 @@ function App() {
             <button
               type="button"
               key={key}
-              className={key === activeSection ? 'is-active' : ''}
+              className={activeSection === key ? 'is-active' : ''}
               onClick={() => {
                 setActiveSection(key)
                 setActiveView('discover')
               }}
             >
-              <Icon size={18} />
-              <span>{label}</span>
+              <Icon size={17} />
+              {label}
             </button>
           ))}
         </nav>
@@ -1753,11 +1367,11 @@ function App() {
         <div className="status-strip">
           <span>
             <AtSign size={15} />
-            Email
+            Account
           </span>
           <span>
             <ShieldCheck size={15} />
-            Gratis
+            Privato
           </span>
           <button
             type="button"
@@ -1771,51 +1385,35 @@ function App() {
         </div>
       </header>
 
-      {notice && (
-        <div className="notice" role="status">
-          <span>{notice}</span>
-          <button
-            type="button"
-            onClick={() => setNotice('')}
-            aria-label="Chiudi notifica"
-            title="Chiudi"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      <main className="workspace">
-        <section className="main-pane" aria-labelledby="section-title">
+      <div className="workspace">
+        <section className="main-pane">
           <div className="section-head">
             <div>
               <p className="eyebrow">{activeMeta.label}</p>
-              <h2 id="section-title">{activeMeta.title}</h2>
+              <h2>{activeMeta.title}</h2>
               <p>{activeMeta.detail}</p>
             </div>
-            <div className="section-count">
-              <strong>{matchingProfiles.length}</strong>
+            <div className="section-count" aria-label="Profili visibili">
+              <strong>{visibleProfiles.length}</strong>
               <span>profili</span>
             </div>
           </div>
 
-          <div className="view-tabs" role="tablist" aria-label="Vista">
+          <div className="view-tabs">
             {[
-              { key: 'discover', label: 'Scopri', Icon: Search },
-              { key: 'matches', label: 'Match', Icon: MessageCircle },
-              { key: 'invites', label: 'Inviti', Icon: UserPlus },
-              { key: 'profile', label: 'Profilo', Icon: User },
-            ].map(({ key, label, Icon }) => (
+              ['discover', 'Scopri', Search],
+              ['matches', 'Match', Heart],
+              ['invites', 'Inviti', KeyRound],
+              ['profile', 'Profilo', User],
+            ].map(([key, label, Icon]) => (
               <button
                 type="button"
-                key={key}
-                role="tab"
-                aria-selected={activeView === key}
+                key={key as string}
                 className={activeView === key ? 'is-active' : ''}
                 onClick={() => setActiveView(key as ViewKey)}
               >
                 <Icon size={17} />
-                {label}
+                {label as string}
               </button>
             ))}
           </div>
@@ -1828,7 +1426,7 @@ function App() {
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Nome, citta, interessi"
+                    placeholder="Cerca per citta, interessi, nome"
                   />
                 </label>
 
@@ -1840,9 +1438,7 @@ function App() {
                     min="2"
                     max="30"
                     value={maxDistance}
-                    onChange={(event) =>
-                      setMaxDistance(Number(event.target.value))
-                    }
+                    onChange={(event) => setMaxDistance(Number(event.target.value))}
                   />
                 </label>
 
@@ -1850,22 +1446,20 @@ function App() {
                   <input
                     type="checkbox"
                     checked={availableOnly}
-                    onChange={(event) =>
-                      setAvailableOnly(event.target.checked)
-                    }
+                    onChange={(event) => setAvailableOnly(event.target.checked)}
                   />
-                  <span>Disponibili oggi</span>
+                  Disponibili oggi
                 </label>
               </div>
 
-              {isNightLocked ? (
+              {activeSection === 'night' && !nightAccepted ? (
                 <NightGate onAccept={() => setNightAccepted(true)} />
               ) : (
                 <ProfileGrid
-                  profiles={matchingProfiles}
-                  likedIds={combinedLikedIds}
+                  profiles={visibleProfiles}
+                  likedIds={effectiveLikedIds}
                   passedIds={passedIds}
-                  matchedIds={combinedMatchedIds}
+                  matchedIds={effectiveMatchedIds}
                   onLike={likeProfile}
                   onPass={passProfile}
                 />
@@ -1875,7 +1469,7 @@ function App() {
 
           {activeView === 'matches' && (
             <MatchesView
-              profiles={matchedProfiles}
+              profiles={matchProfiles}
               selectedId={selectedMatch?.id ?? null}
               setSelectedId={setSelectedMatchId}
             />
@@ -1883,7 +1477,7 @@ function App() {
 
           {activeView === 'invites' && (
             <InviteManager
-              invites={combinedInvites}
+              invites={[...remoteState.invites, ...invites]}
               invitePurpose={invitePurpose}
               setInvitePurpose={setInvitePurpose}
               createInvite={createInvite}
@@ -1902,12 +1496,10 @@ function App() {
           )}
         </section>
 
-        <aside className="side-pane" aria-label="Chat e stato">
+        <aside className="side-pane" aria-label="Chat e riepilogo">
           <div className="user-summary">
             <div>
-              <p className="eyebrow">
-                {session.backend === 'supabase' ? 'Account sincronizzato' : 'Accesso locale'}
-              </p>
+              <p className="eyebrow">Il tuo spazio</p>
               <h2>{session.name}</h2>
               <p>
                 {session.city} · {session.age} anni
@@ -1918,109 +1510,72 @@ function App() {
 
           <div className="stats-grid">
             <div>
-              <strong>{combinedLikedIds.length}</strong>
+              <strong>{effectiveLikedIds.length}</strong>
               <span>interessi</span>
             </div>
             <div>
-              <strong>{matchedProfiles.length}</strong>
+              <strong>{matchProfiles.length}</strong>
               <span>match</span>
             </div>
             <div>
-              <strong>{combinedInvites.length + BASE_INVITES.length}</strong>
+              <strong>{remoteState.invites.length + invites.length}</strong>
               <span>inviti</span>
             </div>
           </div>
 
-          <BackendStatusPanel
-            status={visibleBackendStatus}
-            detail={visibleBackendDetail}
-            syncing={isSyncing}
-            onRefresh={
-              currentUserId ? () => refreshRemoteData(currentUserId) : undefined
-            }
-          />
+          <section className="side-note" aria-label="Promemoria">
+            <ShieldCheck size={20} />
+            <span>
+              <strong>Ambiente riservato</strong>
+              <small>
+                Scrivi solo quando c'e interesse reale e mantieni chiari i
+                confini.
+              </small>
+            </span>
+          </section>
 
           <ChatPanel
             selectedMatch={selectedMatch}
-            messages={selectedMessages}
+            messages={currentMessages}
             draftMessage={draftMessage}
             setDraftMessage={setDraftMessage}
             sendMessage={sendMessage}
           />
         </aside>
-      </main>
       </div>
+
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
-    </>
-  )
-}
-
-function BackendStatusPanel({
-  status,
-  detail,
-  syncing,
-  onRefresh,
-}: {
-  status: BackendStatus
-  detail: string
-  syncing: boolean
-  onRefresh?: () => void
-}) {
-  const copy: Record<BackendStatus, string> = {
-    checking: 'Verifica backend',
-    connected: 'Supabase pronto',
-    syncing: 'Sincronizzazione',
-    missing: 'Modalita locale',
-    error: 'Backend da verificare',
-  }
-
-  return (
-    <section className={`backend-status is-${status}`} aria-label="Backend">
-      <Database size={20} />
-      <span>
-        <strong>{copy[status]}</strong>
-        <small>{detail}</small>
-      </span>
-      {onRefresh && (
-        <button
-          type="button"
-          className="icon-action"
-          onClick={onRefresh}
-          disabled={syncing}
-          aria-label="Sincronizza"
-          title="Sincronizza"
-        >
-          <RefreshCcw size={16} />
-        </button>
-      )}
-    </section>
+    </main>
   )
 }
 
 function EmailAccess({
   onSubmit,
-  backendStatus,
-  backendDetail,
 }: {
   onSubmit: (request: EmailAuthRequest) => Promise<string | null>
-  backendStatus: BackendStatus
-  backendDetail: string
 }) {
   const [mode, setMode] = useState<EmailAuthRequest['mode']>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [accepted, setAccepted] = useState(false)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError('')
+
+    if (!accepted) {
+      setError('Accetta le regole base per continuare.')
+      return
+    }
+
     setSubmitting(true)
+    setError('')
 
-    const submitError = await onSubmit({ mode, email, password })
+    const result = await onSubmit({ mode, email, password })
 
-    if (submitError) {
-      setError(submitError)
+    if (result) {
+      setError(result)
     }
 
     setSubmitting(false)
@@ -2034,38 +1589,37 @@ function EmailAccess({
             <AtSign size={22} />
           </div>
           <div>
-            <p className="eyebrow">Email · invito dopo il login</p>
+            <p className="eyebrow">Accesso riservato</p>
             <h1 id="auth-title">CerchiaMi</h1>
           </div>
         </div>
 
-        <div className="auth-mode" role="tablist" aria-label="Accesso">
-          <button
-            type="button"
-            className={mode === 'login' ? 'is-active' : ''}
-            onClick={() => setMode('login')}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            className={mode === 'signup' ? 'is-active' : ''}
-            onClick={() => setMode('signup')}
-          >
-            Crea account
-          </button>
-        </div>
+        <form className="auth-form" onSubmit={submit}>
+          <div className="auth-mode" role="tablist" aria-label="Tipo accesso">
+            <button
+              type="button"
+              className={mode === 'login' ? 'is-active' : ''}
+              onClick={() => setMode('login')}
+            >
+              Entra
+            </button>
+            <button
+              type="button"
+              className={mode === 'signup' ? 'is-active' : ''}
+              onClick={() => setMode('signup')}
+            >
+              Crea account
+            </button>
+          </div>
 
-        <form onSubmit={submit} className="auth-form">
           <label>
             Email
             <input
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
-              inputMode="email"
-              placeholder="nome@email.it"
               type="email"
+              autoComplete="email"
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="nome@email.it"
             />
           </label>
 
@@ -2073,32 +1627,34 @@ function EmailAccess({
             Password
             <input
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              minLength={6}
-              placeholder="Minimo 6 caratteri"
               type="password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder="Almeno 6 caratteri"
             />
           </label>
 
-          <div className={`backend-note is-${backendStatus}`}>
-            <Database size={16} />
-            <span>
-              {backendStatus === 'missing'
-                ? 'Login email richiede Supabase configurato online.'
-                : backendDetail}
-            </span>
+          <div className="auth-note">
+            <ShieldCheck size={16} />
+            <span>Dopo l'accesso completi il profilo e usi il codice invito.</span>
           </div>
+
+          <label className="check-row">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(event) => setAccepted(event.target.checked)}
+            />
+            <span>
+              Confermo maggiore eta, rispetto, consenso e discrezione.
+            </span>
+          </label>
 
           {error && <p className="form-error">{error}</p>}
 
           <button type="submit" className="primary-button" disabled={submitting}>
-            {mode === 'signup' ? <UserPlus size={18} /> : <Lock size={18} />}
-            {submitting
-              ? 'Controllo...'
-              : mode === 'signup'
-                ? 'Crea account'
-                : 'Entra'}
+            <Lock size={18} />
+            {submitting ? 'Attendi...' : mode === 'login' ? 'Entra' : 'Crea account'}
           </button>
         </form>
       </section>
@@ -2106,14 +1662,14 @@ function EmailAccess({
       <section className="auth-preview" aria-label="Profili in evidenza">
         <div className="preview-photo is-large">
           <img src={PEOPLE[0].image} alt="" />
-          <span>Work</span>
+          <span>Sociale</span>
         </div>
         <div className="preview-photo">
           <img src={PEOPLE[3].image} alt="" />
-          <span>Match</span>
+          <span>Relazione</span>
         </div>
         <div className="preview-photo is-small">
-          <img src={PEOPLE[6].image} alt="" />
+          <img src={PEOPLE[5].image} alt="" />
           <span>18+</span>
         </div>
       </section>
@@ -2121,16 +1677,16 @@ function EmailAccess({
   )
 }
 
-function AccountOnboarding({
-  email,
-  onComplete,
-  onLogout,
+function OnboardingFlow({
+  initialEmail,
+  onSubmit,
 }: {
-  email: string
-  onComplete: (draft: OnboardingDraft) => Promise<string | null>
-  onLogout: () => void
+  initialEmail: string
+  onSubmit: (draft: OnboardingDraft) => Promise<string | null>
 }) {
   const [step, setStep] = useState(0)
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [draft, setDraft] = useState<OnboardingDraft>({
     inviteCode: '',
     firstName: '',
@@ -2147,12 +1703,9 @@ function AccountOnboarding({
     visibility: 'circle',
     accepted: false,
   })
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const age = calculateAge(draft.birthDate)
   const steps = [
     'Invito',
-    'Identita',
+    'Nome',
     'Username',
     'Nascita',
     'Citta',
@@ -2176,15 +1729,18 @@ function AccountOnboarding({
         ? current.sections.filter((item) => item !== section)
         : [...current.sections, section]
 
-      return { ...current, sections }
+      return {
+        ...current,
+        sections: sections.length ? sections : current.sections,
+      }
     })
   }
 
   function goNext() {
-    const stepError = validateOnboardingDraft(draft, step)
+    const validationError = validateOnboardingDraft(draft, step)
 
-    if (stepError) {
-      setError(stepError)
+    if (validationError) {
+      setError(validationError)
       return
     }
 
@@ -2193,12 +1749,13 @@ function AccountOnboarding({
   }
 
   async function submit() {
-    setError('')
     setSubmitting(true)
-    const submitError = await onComplete(draft)
+    setError('')
 
-    if (submitError) {
-      setError(submitError)
+    const result = await onSubmit(draft)
+
+    if (result) {
+      setError(result)
     }
 
     setSubmitting(false)
@@ -2206,55 +1763,54 @@ function AccountOnboarding({
 
   return (
     <main className="onboarding-shell">
-      <section className="onboarding-frame" aria-labelledby="onboarding-title">
+      <section className="onboarding-frame" aria-label="Crea profilo">
         <div className="onboarding-top">
-          <div className="auth-brand">
-            <div className="brand-mark" aria-hidden="true">
-              <KeyRound size={22} />
-            </div>
-            <div>
-              <p className="eyebrow">{email || 'Account email'}</p>
-              <h1 id="onboarding-title">Costruisci il profilo</h1>
-            </div>
+          <div>
+            <p className="eyebrow">Profilo · {initialEmail}</p>
+            <h1>Costruisci il tuo spazio</h1>
           </div>
-          <button type="button" className="ghost-button" onClick={onLogout}>
-            Esci
-          </button>
+          <span className="distance">
+            {step + 1}/{steps.length}
+          </span>
         </div>
 
-        <div className="step-track" aria-label="Avanzamento profilo">
+        <div className="step-track" aria-label="Avanzamento">
           {steps.map((label, index) => (
             <span
               key={label}
-              className={index === step ? 'is-active' : index < step ? 'is-done' : ''}
+              className={
+                index === step ? 'is-active' : index < step ? 'is-done' : ''
+              }
             >
               {index + 1}
             </span>
           ))}
         </div>
 
-        <div className="onboarding-card" key={step}>
+        <div className="onboarding-card">
           {step === 0 && (
             <>
-              <p className="eyebrow">Accesso privato</p>
-              <h2>Codice invito</h2>
+              <p className="eyebrow">Invito</p>
+              <h2>Entra nella cerchia</h2>
               <label>
-                Codice
+                Codice invito
                 <input
                   value={draft.inviteCode}
                   onChange={(event) =>
                     updateDraft('inviteCode', event.target.value.toUpperCase())
                   }
-                  autoComplete="one-time-code"
                   placeholder="CERCHIAMI-2026"
                 />
               </label>
+              <p className="field-hint">
+                Codice iniziale disponibile: CERCHIAMI-2026
+              </p>
             </>
           )}
 
           {step === 1 && (
             <>
-              <p className="eyebrow">Dati reali</p>
+              <p className="eyebrow">Identita</p>
               <h2>Nome e cognome</h2>
               <div className="form-grid">
                 <label>
@@ -2265,7 +1821,6 @@ function AccountOnboarding({
                       updateDraft('firstName', event.target.value)
                     }
                     autoComplete="given-name"
-                    placeholder="Nome"
                   />
                 </label>
                 <label>
@@ -2276,7 +1831,6 @@ function AccountOnboarding({
                       updateDraft('lastName', event.target.value)
                     }
                     autoComplete="family-name"
-                    placeholder="Cognome"
                   />
                 </label>
               </div>
@@ -2285,7 +1839,7 @@ function AccountOnboarding({
 
           {step === 2 && (
             <>
-              <p className="eyebrow">Nome pubblico</p>
+              <p className="eyebrow">Pubblico</p>
               <h2>Soprannome</h2>
               <label>
                 Username
@@ -2294,8 +1848,8 @@ function AccountOnboarding({
                   onChange={(event) =>
                     updateDraft('username', normalizeUsername(event.target.value))
                   }
-                  autoComplete="username"
                   placeholder="mara.mi"
+                  autoComplete="username"
                 />
               </label>
             </>
@@ -2303,33 +1857,30 @@ function AccountOnboarding({
 
           {step === 3 && (
             <>
-              <p className="eyebrow">18+</p>
+              <p className="eyebrow">Eta</p>
               <h2>Data di nascita</h2>
               <label>
                 Data
                 <input
                   value={draft.birthDate}
-                  onChange={(event) =>
-                    updateDraft('birthDate', event.target.value)
-                  }
                   type="date"
+                  onChange={(event) => updateDraft('birthDate', event.target.value)}
                 />
               </label>
-              {age > 0 && <p className="field-hint">{age} anni</p>}
             </>
           )}
 
           {step === 4 && (
             <>
               <p className="eyebrow">Zona</p>
-              <h2>Citta</h2>
+              <h2>Dove vuoi conoscere persone</h2>
               <label>
-                Dove sei
+                Citta
                 <input
                   value={draft.city}
                   onChange={(event) => updateDraft('city', event.target.value)}
-                  autoComplete="address-level2"
                   placeholder="Milano"
+                  autoComplete="address-level2"
                 />
               </label>
             </>
@@ -2380,9 +1931,7 @@ function AccountOnboarding({
                 Separati da virgola
                 <input
                   value={draft.interests}
-                  onChange={(event) =>
-                    updateDraft('interests', event.target.value)
-                  }
+                  onChange={(event) => updateDraft('interests', event.target.value)}
                   placeholder="musica live, startup, cinema"
                 />
               </label>
@@ -2451,9 +2000,7 @@ function AccountOnboarding({
                 <input
                   type="checkbox"
                   checked={draft.accepted}
-                  onChange={(event) =>
-                    updateDraft('accepted', event.target.checked)
-                  }
+                  onChange={(event) => updateDraft('accepted', event.target.checked)}
                 />
                 <span>
                   Confermo maggiore eta, consenso e comportamento rispettoso.
@@ -2594,12 +2141,6 @@ function ProfileGrid({
                   <span>
                     <BadgeCheck size={14} />
                     Verificato
-                  </span>
-                )}
-                {profile.source === 'remote' && (
-                  <span>
-                    <Database size={14} />
-                    Live
                   </span>
                 )}
                 {profile.availableToday && (
