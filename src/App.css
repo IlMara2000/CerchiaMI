@@ -954,6 +954,34 @@ select:focus {
   gap: 14px;
 }
 
+.auth-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-strong);
+}
+
+.auth-mode button,
+.ghost-button,
+.choice-grid button {
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: var(--surface);
+  font-weight: 800;
+}
+
+.auth-mode button.is-active,
+.choice-grid button.is-active {
+  color: #ffffff;
+  border-color: var(--ink);
+  background: var(--ink);
+}
+
 .backend-note {
   display: flex;
   align-items: flex-start;
@@ -996,6 +1024,170 @@ select:focus {
 
 .profile-save {
   justify-self: start;
+}
+
+.onboarding-shell {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 18px;
+}
+
+.onboarding-frame {
+  display: grid;
+  width: min(920px, 100%);
+  gap: 18px;
+  padding: clamp(18px, 4vw, 34px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.onboarding-top,
+.onboarding-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-track {
+  display: grid;
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.step-track span {
+  display: grid;
+  min-height: 34px;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  background: var(--surface-strong);
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.step-track span.is-active {
+  color: #ffffff;
+  border-color: var(--relationship);
+  background: var(--relationship);
+}
+
+.step-track span.is-done {
+  color: #ffffff;
+  border-color: var(--success);
+  background: var(--success);
+}
+
+.onboarding-card {
+  display: grid;
+  min-height: 350px;
+  align-content: center;
+  gap: 14px;
+  padding: clamp(18px, 4vw, 34px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, rgba(8, 127, 140, 0.08), transparent 44%),
+    linear-gradient(315deg, rgba(217, 77, 106, 0.1), transparent 48%),
+    var(--surface-strong);
+  animation: step-in 220ms ease;
+}
+
+.onboarding-card label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.onboarding-card input,
+.onboarding-card select,
+.onboarding-card textarea {
+  min-height: 48px;
+  padding: 0 12px;
+  background: var(--surface);
+}
+
+.onboarding-card textarea {
+  min-height: 118px;
+  padding: 12px;
+  resize: vertical;
+}
+
+.field-hint {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.choice-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.choice-grid button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 10px;
+}
+
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 14px;
+}
+
+.ghost-button:hover,
+.auth-mode button:hover,
+.choice-grid button:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.disclaimer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(16, 24, 32, 0.48);
+  backdrop-filter: blur(10px);
+}
+
+.disclaimer-dialog {
+  display: grid;
+  width: min(560px, 100%);
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.disclaimer-dialog .primary-button {
+  justify-self: start;
+}
+
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-preview {
@@ -1115,6 +1307,20 @@ select:focus {
   .invite-create {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .onboarding-top,
+  .onboarding-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .step-track {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .choice-grid {
+    grid-template-columns: 1fr;
   }
 }
 

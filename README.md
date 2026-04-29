@@ -1,8 +1,8 @@
 # CerchiaMi
 
 App React + TypeScript per incontri privati, gratuiti e solo su invito.
-Funziona subito in modalita locale e, quando Supabase e configurato, sincronizza
-profili, inviti, like, match e messaggi.
+La versione online usa Supabase per login email, profili, inviti, like, match e
+messaggi, e Vercel per il deploy/API del disclaimer giornaliero.
 
 ## Avvio locale
 
@@ -25,19 +25,24 @@ Codici invito iniziali:
 - `PRIVATO-18`
 - `AMICI-001`
 
-Per testare subito usa `CERCHIAMI-2026`.
+Per testare subito usa `CERCHIAMI-2026` durante l'onboarding dopo il login
+email.
 
 ## Funzioni incluse
 
-- Accesso bloccato da codice invito.
+- Login tramite email e password con Supabase Auth.
+- Onboarding profilo dopo il primo login: codice invito, nome, cognome,
+  username, data di nascita, citta, identita, obiettivo, interessi, bio,
+  disponibilita, sezioni e visibilita.
+- Disclaimer giornaliero via endpoint Vercel `/api/disclaimer-key`, basato su
+  chiave hash IP + giorno e salvato nel browser per non ripeterlo nella stessa
+  giornata.
 - Conferma 18+, consenso e comportamento rispettoso.
 - Tre sezioni: lavoro/amicizia, relazione, notte piccante.
 - Profili, filtri, interessi, match e chat.
 - Creazione e copia di nuovi codici invito.
 - Profilo personale modificabile.
-- Salvataggio locale tramite `localStorage` quando Supabase non e disponibile.
 - Sincronizzazione Supabase per profili, inviti, like, match e messaggi.
-- Fallback automatico: l'app resta usabile anche senza variabili Vercel.
 
 ## Supabase
 
@@ -47,7 +52,8 @@ Per preparare il backend:
 
 1. Apri Supabase SQL Editor.
 2. Incolla ed esegui `supabase/schema.sql`.
-3. In Supabase Auth abilita gli accessi anonimi.
+3. In Supabase Auth abilita il provider Email. Se vuoi entrare subito senza
+   link di conferma, disattiva temporaneamente la conferma email.
 4. In Vercel aggiungi queste variabili:
 
 ```bash
@@ -56,5 +62,4 @@ VITE_SUPABASE_PUBLISHABLE_KEY
 ```
 
 Con queste variabili presenti al momento della build, Vercel genera una versione
-online collegata a Supabase. Senza variabili, la stessa app lavora in modalita
-locale nel browser.
+online collegata a Supabase.

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Dispatch, FormEvent, SetStateAction } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
+  AtSign,
   BadgeCheck,
   Briefcase,
   Calendar,
@@ -71,6 +72,7 @@ type Session = {
   city: string
   inviteCode: string
   createdAt: string
+  email?: string
 }
 
 type Invite = {
@@ -91,6 +93,13 @@ type Message = {
 }
 
 type OwnProfile = {
+  firstName: string
+  lastName: string
+  username: string
+  birthDate: string
+  gender: string
+  relationshipGoal: string
+  interests: string[]
   displayName: string
   age: number
   city: string
@@ -100,16 +109,43 @@ type OwnProfile = {
   visibility: 'circle' | 'matches'
 }
 
-type AccessRequest = {
+type EmailAuthRequest = {
+  mode: 'login' | 'signup'
+  email: string
+  password: string
+}
+
+type OnboardingDraft = {
   inviteCode: string
-  name: string
-  age: number
+  firstName: string
+  lastName: string
+  username: string
+  birthDate: string
   city: string
+  gender: string
+  relationshipGoal: string
+  interests: string
+  bio: string
+  availability: string
+  sections: SectionKey[]
+  visibility: 'circle' | 'matches'
   accepted: boolean
+}
+
+type DisclaimerState = {
+  key: string
+  shouldShow: boolean
 }
 
 type RemoteProfileRow = {
   id: string
+  first_name: string | null
+  last_name: string | null
+  username: string | null
+  birth_date: string | null
+  gender: string | null
+  relationship_goal: string | null
+  interests: string[] | null
   display_name: string
   age: number
   city: string
@@ -161,6 +197,9 @@ type RemoteState = {
   matchByProfileId: Record<string, string>
 }
 
+const PROFILE_SELECT =
+  'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility, created_at'
+
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
     key: 'network',
@@ -188,6 +227,13 @@ const SECTION_META: Record<SectionKey, SectionMeta> = {
 const BASE_INVITES = ['CERCHIAMI-2026', 'PRIVATO-18', 'AMICI-001']
 
 const EMPTY_PROFILE: OwnProfile = {
+  firstName: '',
+  lastName: '',
+  username: '',
+  birthDate: '',
+  gender: '',
+  relationshipGoal: '',
+  interests: [],
   displayName: '',
   age: 30,
   city: '',
@@ -385,7 +431,19 @@ const STORAGE = {
 function readStored<T>(key: string, fallback: T): T {
   try {
     const rawValue = window.localStorage.getItem(key)
-    return rawValue ? (JSON.parse(rawValue) as T) : fallback
+    const parsedValue = rawValue ? (JSON.parse(rawValue) as T) : fallback
+
+    if (
+      key === STORAGE.session &&
+      parsedValue &&
+      typeof parsedValue === 'object' &&
+      'backend' in parsedValue &&
+      parsedValue.backend === 'local'
+    ) {
+      return fallback
+    }
+
+    return parsedValue
   } catch {
     return fallback
   }
@@ -451,6 +509,13 @@ function avatarFor(name: string) {
 
 function rowToOwnProfile(row: RemoteProfileRow): OwnProfile {
   return {
+    firstName: row.first_name ?? '',
+    lastName: row.last_name ?? '',
+    username: row.username ?? '',
+    birthDate: row.birth_date ?? '',
+    gender: row.gender ?? '',
+    relationshipGoal: row.relationship_goal ?? '',
+    interests: row.interests ?? [],
     displayName: row.display_name,
     age: row.age,
     city: row.city,
@@ -465,6 +530,7 @@ function ownProfileToSession(
   profile: OwnProfile,
   inviteCode: string,
   userId?: string,
+  email?: string,
 ): Session {
   return {
     userId,
@@ -474,6 +540,7 @@ function ownProfileToSession(
     city: profile.city,
     inviteCode,
     createdAt: new Date().toISOString(),
+    email,
   }
 }
 
@@ -488,6 +555,7 @@ function rowToProfile(
   const sectionLabel = SECTION_META[primarySection].label.toLowerCase()
   const cleanBio = row.bio?.trim()
   const availability = row.availability?.trim() || 'Disponibilita da definire'
+  const interests = row.interests?.filter(Boolean) ?? []
 
   return {
     id: row.id,
@@ -498,7 +566,9 @@ function rowToProfile(
     role: row.visibility === 'matches' ? 'Profilo riservato' : 'Membro CerchiaMi',
     image: avatarFor(row.display_name),
     sections,
-    tags: sections.map((section) => SECTION_META[section].label),
+    tags: interests.length
+      ? interests.slice(0, 4)
+      : sections.map((section) => SECTION_META[section].label),
     bio:
       cleanBio ||
       'Profilo appena entrato nella cerchia. Parti leggero e chiedi cosa cerca.',
@@ -512,26 +582,6 @@ function rowToProfile(
   }
 }
 
-function validateAccessRequest(request: AccessRequest) {
-  if (!request.name.trim() || !request.city.trim()) {
-    return 'Nome e citta sono obbligatori.'
-  }
-
-  if (!Number.isFinite(request.age) || request.age < 18) {
-    return 'Accesso consentito solo a persone maggiorenni.'
-  }
-
-  if (!request.accepted) {
-    return 'Serve accettare regole 18+, consenso e rispetto.'
-  }
-
-  if (!request.inviteCode.trim()) {
-    return 'Inserisci un codice invito.'
-  }
-
-  return null
-}
-
 function isLocalInviteValid(code: string, invites: Invite[]) {
   if (BASE_INVITES.includes(code)) {
     return true
@@ -542,22 +592,106 @@ function isLocalInviteValid(code: string, invites: Invite[]) {
   )
 }
 
-function makeTechnicalEmail() {
-  const randomId =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+function calculateAge(birthDate: string) {
+  const parsedDate = new Date(birthDate)
 
-  return `cerchiami-${randomId}@gmail.com`
+  if (Number.isNaN(parsedDate.getTime())) {
+    return 0
+  }
+
+  const today = new Date()
+  let age = today.getFullYear() - parsedDate.getFullYear()
+  const monthDelta = today.getMonth() - parsedDate.getMonth()
+
+  if (
+    monthDelta < 0 ||
+    (monthDelta === 0 && today.getDate() < parsedDate.getDate())
+  ) {
+    age -= 1
+  }
+
+  return age
 }
 
-function makeTechnicalPassword() {
-  const randomId =
-    typeof crypto !== 'undefined' && 'randomUUID' in crypto
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase().replace(/[^a-z0-9._-]/g, '')
+}
 
-  return `CerchiaMi-${randomId}!`
+function parseInterests(value: string) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 8)
+}
+
+function displayNameFromDraft(draft: OnboardingDraft) {
+  return draft.username.trim() || draft.firstName.trim()
+}
+
+function validateEmailAuthRequest(request: EmailAuthRequest) {
+  const email = request.email.trim()
+
+  if (!email || !email.includes('@')) {
+    return 'Inserisci una email valida.'
+  }
+
+  if (request.password.length < 6) {
+    return 'La password deve avere almeno 6 caratteri.'
+  }
+
+  return null
+}
+
+function validateOnboardingDraft(draft: OnboardingDraft, step?: number) {
+  const age = calculateAge(draft.birthDate)
+  const checks = [
+    () =>
+      draft.inviteCode.trim()
+        ? null
+        : 'Inserisci un codice invito per entrare.',
+    () =>
+      draft.firstName.trim() && draft.lastName.trim()
+        ? null
+        : 'Nome e cognome sono obbligatori.',
+    () =>
+      normalizeUsername(draft.username).length >= 3
+        ? null
+        : 'Scegli uno username di almeno 3 caratteri.',
+    () =>
+      age >= 18 ? null : 'Accesso consentito solo a persone maggiorenni.',
+    () => (draft.city.trim() ? null : 'Inserisci la tua citta.'),
+    () =>
+      draft.gender && draft.relationshipGoal
+        ? null
+        : 'Completa identita e obiettivo.',
+    () =>
+      parseInterests(draft.interests).length >= 2
+        ? null
+        : 'Inserisci almeno due interessi separati da virgola.',
+    () =>
+      draft.bio.trim().length >= 20 && draft.availability.trim()
+        ? null
+        : 'Scrivi una bio breve e la tua disponibilita.',
+    () =>
+      draft.accepted && draft.sections.length
+        ? null
+        : 'Conferma regole e scegli almeno una sezione.',
+  ]
+
+  if (typeof step === 'number') {
+    return checks[step]?.() ?? null
+  }
+
+  for (const check of checks) {
+    const error = check()
+
+    if (error) {
+      return error
+    }
+  }
+
+  return null
 }
 
 function App() {
@@ -590,6 +724,8 @@ function App() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(
     session?.backend === 'supabase' ? session.userId ?? null : null,
   )
+  const [authEmail, setAuthEmail] = useState(session?.email ?? '')
+  const [onboardingUserId, setOnboardingUserId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<SectionKey>('network')
   const [activeView, setActiveView] = useState<ViewKey>('discover')
   const [query, setQuery] = useState('')
@@ -609,6 +745,9 @@ function App() {
   )
   const [profileSaving, setProfileSaving] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
+  const [disclaimerState, setDisclaimerState] =
+    useState<DisclaimerState | null>(null)
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
 
   const refreshRemoteData = useCallback(
     async (userId: string, viewerCity = ownProfile.city) => {
@@ -623,9 +762,7 @@ function App() {
           await Promise.all([
             supabase
               .from('profiles')
-              .select(
-                'id, display_name, age, city, bio, availability, sections, visibility, created_at',
-              )
+              .select(PROFILE_SELECT)
               .neq('id', userId),
             supabase
               .from('likes')
@@ -766,6 +903,88 @@ function App() {
     [ownProfile.city],
   )
 
+  const loadProfileForUser = useCallback(
+    async (userId: string, email = '') => {
+      if (!supabase) {
+        return
+      }
+
+      setCurrentUserId(userId)
+      setAuthEmail(email)
+
+      const { data: profileRow, error: profileError } = await supabase
+        .from('profiles')
+        .select(PROFILE_SELECT)
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (profileError) {
+        setBackendStatus('error')
+        setBackendDetail('Profilo Supabase non leggibile.')
+        return
+      }
+
+      if (!profileRow) {
+        setSession(null)
+        setOnboardingUserId(userId)
+        setBackendStatus('connected')
+        setBackendDetail('Completa il profilo per entrare.')
+        return
+      }
+
+      const restoredProfile = rowToOwnProfile(profileRow as RemoteProfileRow)
+      setOwnProfile(restoredProfile)
+      setOnboardingUserId(null)
+      setSession(
+        ownProfileToSession(restoredProfile, 'EMAIL-LOGIN', userId, email),
+      )
+      await refreshRemoteData(userId, restoredProfile.city)
+    },
+    [refreshRemoteData, setOwnProfile, setSession],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadDisclaimerState() {
+      const fallbackKey = `local-${new Date().toISOString().slice(0, 10)}`
+
+      try {
+        const response = await fetch('/api/disclaimer-key', {
+          cache: 'no-store',
+        })
+
+        if (!response.ok) {
+          throw new Error('Disclaimer API unavailable')
+        }
+
+        const payload = (await response.json()) as { key?: string }
+        const key = payload.key || fallbackKey
+        const storageKey = `cerchiami.disclaimer.${key}`
+        const shouldShow = window.localStorage.getItem(storageKey) !== 'ok'
+
+        if (!cancelled) {
+          setDisclaimerState({ key, shouldShow })
+          setShowDisclaimer(shouldShow)
+        }
+      } catch {
+        const storageKey = `cerchiami.disclaimer.${fallbackKey}`
+        const shouldShow = window.localStorage.getItem(storageKey) !== 'ok'
+
+        if (!cancelled) {
+          setDisclaimerState({ key: fallbackKey, shouldShow })
+          setShowDisclaimer(shouldShow)
+        }
+      }
+    }
+
+    void loadDisclaimerState()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   useEffect(() => {
     let cancelled = false
 
@@ -789,6 +1008,7 @@ function App() {
       }
 
       const userId = data.session?.user.id
+      const email = data.session?.user.email ?? ''
 
       if (!userId) {
         setBackendStatus((current) =>
@@ -802,41 +1022,7 @@ function App() {
         return
       }
 
-      setCurrentUserId(userId)
-
-      const { data: profileRow, error: profileError } = await supabase
-        .from('profiles')
-        .select(
-          'id, display_name, age, city, bio, availability, sections, visibility, created_at',
-        )
-        .eq('id', userId)
-        .maybeSingle()
-
-      if (cancelled) {
-        return
-      }
-
-      if (profileError) {
-        setBackendStatus('error')
-        setBackendDetail('Profilo Supabase non leggibile.')
-        return
-      }
-
-      if (profileRow) {
-        const restoredProfile = rowToOwnProfile(profileRow as RemoteProfileRow)
-        setOwnProfile(restoredProfile)
-        setSession((current) => {
-          if (current?.backend === 'supabase' && current.userId === userId) {
-            return current
-          }
-
-          return ownProfileToSession(restoredProfile, 'SESSIONE-SALVATA', userId)
-        })
-        await refreshRemoteData(userId, restoredProfile.city)
-      } else {
-        setBackendStatus('connected')
-        setBackendDetail('Backend pronto, completa il profilo.')
-      }
+      await loadProfileForUser(userId, email)
     }
 
     void restoreSupabaseSession()
@@ -844,7 +1030,7 @@ function App() {
     return () => {
       cancelled = true
     }
-  }, [refreshRemoteData, setOwnProfile, setSession])
+  }, [loadProfileForUser])
 
   const profiles = useMemo(() => {
     const remoteIds = new Set(remoteState.profiles.map((profile) => profile.id))
@@ -925,23 +1111,6 @@ function App() {
       ? 'Dati salvati in questo browser. Supabase si attiva appena configurato.'
       : backendDetail
 
-  function completeLocalAccess(request: AccessRequest, code: string) {
-    const profile: OwnProfile = {
-      ...ownProfile,
-      displayName: request.name.trim(),
-      age: request.age,
-      city: request.city.trim(),
-    }
-
-    setOwnProfile(profile)
-    setSession(ownProfileToSession(profile, code))
-    setInvites((current) =>
-      current.map((invite) =>
-        invite.code.toUpperCase() === code ? { ...invite, used: true } : invite,
-      ),
-    )
-  }
-
   async function saveProfileToSupabase(userId: string, profile: OwnProfile) {
     if (!supabase) {
       return
@@ -950,6 +1119,13 @@ function App() {
     const { error } = await supabase.from('profiles').upsert(
       {
         id: userId,
+        first_name: profile.firstName.trim(),
+        last_name: profile.lastName.trim(),
+        username: normalizeUsername(profile.username),
+        birth_date: profile.birthDate || null,
+        gender: profile.gender,
+        relationship_goal: profile.relationshipGoal,
+        interests: profile.interests,
         display_name: profile.displayName.trim(),
         age: Math.max(18, profile.age),
         city: profile.city.trim(),
@@ -970,6 +1146,7 @@ function App() {
     code: string,
     userId: string,
     localInviteValid: boolean,
+    markUsed = true,
   ) {
     if (!supabase) {
       return { ok: localInviteValid, message: 'Codice invito non valido.' }
@@ -999,7 +1176,7 @@ function App() {
       return { ok: false, message: 'Codice invito gia utilizzato.' }
     }
 
-    if (!remoteInvite.used_by) {
+    if (!remoteInvite.used_by && markUsed) {
       const { error: updateError } = await supabase
         .from('invites')
         .update({ used_by: userId, used_at: new Date().toISOString() })
@@ -1017,76 +1194,131 @@ function App() {
     return { ok: true }
   }
 
-  async function handleAccess(request: AccessRequest) {
-    const validationError = validateAccessRequest(request)
+  async function handleEmailAuth(request: EmailAuthRequest) {
+    const validationError = validateEmailAuthRequest(request)
 
     if (validationError) {
       return validationError
     }
 
-    const normalizedCode = request.inviteCode.trim().toUpperCase()
-    const localInviteValid = isLocalInviteValid(normalizedCode, invites)
-
     if (!supabase) {
-      if (!localInviteValid) {
-        return 'Codice invito non valido.'
-      }
-
-      completeLocalAccess(request, normalizedCode)
-      return null
+      setBackendStatus('missing')
+      setBackendDetail('Supabase non configurato per questo deploy.')
+      return 'Login email non disponibile: manca la configurazione Supabase.'
     }
 
+    const email = request.email.trim()
+
+    setAuthEmail(email)
     setBackendStatus('syncing')
-    setBackendDetail('Creo sessione e profilo Supabase.')
+    setBackendDetail(
+      request.mode === 'signup'
+        ? 'Creo account email su Supabase.'
+        : 'Accesso email in corso su Supabase.',
+    )
 
-    let signInData = (await supabase.auth.signInAnonymously()).data
+    try {
+      const { data, error } =
+        request.mode === 'signup'
+          ? await supabase.auth.signUp({
+              email,
+              password: request.password,
+            })
+          : await supabase.auth.signInWithPassword({
+              email,
+              password: request.password,
+            })
 
-    if (!signInData.user) {
-      const email = makeTechnicalEmail()
-      const password = makeTechnicalPassword()
-      const emailSignUp = await supabase.auth.signUp({ email, password })
-
-      if (emailSignUp.error || !emailSignUp.data.user) {
+      if (error) {
         setBackendStatus('error')
-        setBackendDetail('Auth Supabase non accetta nuovi utenti.')
-        return 'Accesso Supabase non disponibile.'
+        setBackendDetail('Auth Supabase ha rifiutato le credenziali.')
+        return error.message
       }
 
-      if (!emailSignUp.data.session) {
-        setBackendStatus('error')
-        setBackendDetail('Disattiva conferma email o abilita Anonymous sign-ins.')
-        return 'Supabase richiede conferma email: accesso non completato.'
+      const user = data.session?.user ?? data.user
+
+      if (!data.session || !user) {
+        setBackendStatus('connected')
+        setBackendDetail('Controlla la email e poi fai login.')
+        return 'Account creato: conferma la email, poi entra con la stessa password.'
       }
 
-      signInData = emailSignUp.data
+      await loadProfileForUser(user.id, user.email ?? email)
+      return null
+    } catch (error) {
+      console.error(error)
+      setBackendStatus('error')
+      setBackendDetail('Login email non completato.')
+      return 'Accesso non completato.'
+    }
+  }
+
+  async function completeOnboarding(draft: OnboardingDraft) {
+    const validationError = validateOnboardingDraft(draft)
+
+    if (validationError) {
+      return validationError
     }
 
-    const userId = signInData.user!.id
-    const inviteClaim = await claimInviteCode(
+    const userId = onboardingUserId ?? currentUserId
+
+    if (!supabase || !userId) {
+      return 'Sessione Supabase non trovata: rifai il login email.'
+    }
+
+    const normalizedCode = draft.inviteCode.trim().toUpperCase()
+    const localInviteValid = isLocalInviteValid(normalizedCode, invites)
+    const preflightInvite = await claimInviteCode(
       normalizedCode,
       userId,
       localInviteValid,
+      false,
     )
 
-    if (!inviteClaim.ok) {
-      await supabase.auth.signOut()
+    if (!preflightInvite.ok) {
       setBackendStatus('connected')
-      setBackendDetail('Backend pronto, codice rifiutato.')
-      return inviteClaim.message ?? 'Codice invito non valido.'
+      setBackendDetail('Backend pronto, codice invito rifiutato.')
+      return preflightInvite.message ?? 'Codice invito non valido.'
     }
 
+    const username = normalizeUsername(draft.username)
     const profile: OwnProfile = {
-      ...ownProfile,
-      displayName: request.name.trim(),
-      age: request.age,
-      city: request.city.trim(),
+      firstName: draft.firstName.trim(),
+      lastName: draft.lastName.trim(),
+      username,
+      birthDate: draft.birthDate,
+      gender: draft.gender,
+      relationshipGoal: draft.relationshipGoal,
+      interests: parseInterests(draft.interests),
+      displayName: displayNameFromDraft({ ...draft, username }),
+      age: calculateAge(draft.birthDate),
+      city: draft.city.trim(),
+      bio: draft.bio.trim(),
+      availability: draft.availability.trim(),
+      sections: draft.sections,
+      visibility: draft.visibility,
     }
+
+    setBackendStatus('syncing')
+    setBackendDetail('Completo profilo e invito su Supabase.')
 
     try {
       await saveProfileToSupabase(userId, profile)
+
+      const inviteClaim = await claimInviteCode(
+        normalizedCode,
+        userId,
+        localInviteValid,
+      )
+
+      if (!inviteClaim.ok) {
+        return inviteClaim.message ?? 'Codice invito non valido.'
+      }
+
       setOwnProfile(profile)
       setCurrentUserId(userId)
-      setSession(ownProfileToSession(profile, normalizedCode, userId))
+      setOnboardingUserId(null)
+      setSession(ownProfileToSession(profile, normalizedCode, userId, authEmail))
       setInvites((current) =>
         current.map((invite) =>
           invite.code.toUpperCase() === normalizedCode
@@ -1095,12 +1327,10 @@ function App() {
         ),
       )
       await refreshRemoteData(userId, profile.city)
-      setNotice('Profilo creato e sincronizzato.')
+      setNotice('Profilo completato e sincronizzato.')
       return null
     } catch (error) {
       console.error(error)
-      await supabase.auth.signOut()
-      setCurrentUserId(null)
       setBackendStatus('error')
       setBackendDetail('Esegui lo schema SQL aggiornato su Supabase.')
 
@@ -1380,23 +1610,45 @@ function App() {
       return
     }
 
+    if (
+      ownProfile.username &&
+      normalizeUsername(ownProfile.username).length < 3
+    ) {
+      setNotice('Username troppo corto.')
+      return
+    }
+
+    if (ownProfile.birthDate && calculateAge(ownProfile.birthDate) < 18) {
+      setNotice('Il profilo deve essere maggiorenne.')
+      return
+    }
+
     setProfileSaving(true)
 
     try {
+      const profileToSave = {
+        ...ownProfile,
+        username: normalizeUsername(ownProfile.username),
+        age: ownProfile.birthDate
+          ? calculateAge(ownProfile.birthDate)
+          : ownProfile.age,
+      }
+
       if (supabase && currentUserId) {
-        await saveProfileToSupabase(currentUserId, ownProfile)
-        await refreshRemoteData(currentUserId, ownProfile.city)
+        await saveProfileToSupabase(currentUserId, profileToSave)
+        await refreshRemoteData(currentUserId, profileToSave.city)
         setBackendStatus('connected')
         setBackendDetail('Profilo sincronizzato con Supabase.')
       }
 
+      setOwnProfile(profileToSave)
       setSession((current) =>
         current
           ? {
               ...current,
-              name: ownProfile.displayName,
-              age: ownProfile.age,
-              city: ownProfile.city,
+              name: profileToSave.displayName,
+              age: profileToSave.age,
+              city: profileToSave.city,
             }
           : current,
       )
@@ -1412,29 +1664,53 @@ function App() {
   }
 
   async function logout() {
-    if (supabase && session?.backend === 'supabase') {
+    if (supabase) {
       await supabase.auth.signOut()
     }
 
     setSession(null)
     setCurrentUserId(null)
+    setOnboardingUserId(null)
     setRemoteState(REMOTE_STATE_EMPTY)
     setActiveView('discover')
     setSelectedMatchId(null)
   }
 
+  function acceptDisclaimer() {
+    if (disclaimerState) {
+      window.localStorage.setItem(
+        `cerchiami.disclaimer.${disclaimerState.key}`,
+        'ok',
+      )
+    }
+
+    setShowDisclaimer(false)
+  }
+
   if (!session) {
     return (
-      <InviteAccess
-        ownProfile={ownProfile}
-        onAccess={handleAccess}
-        backendStatus={backendStatus}
-      />
+      <>
+        {onboardingUserId ? (
+          <AccountOnboarding
+            email={authEmail}
+            onComplete={completeOnboarding}
+            onLogout={logout}
+          />
+        ) : (
+          <EmailAccess
+            onSubmit={handleEmailAuth}
+            backendStatus={backendStatus}
+            backendDetail={backendDetail}
+          />
+        )}
+        {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+      </>
     )
   }
 
   return (
-    <div className="app-shell">
+    <>
+      <div className="app-shell">
       <header className="topbar">
         <div className="brand-block">
           <div className="brand-mark" aria-hidden="true">
@@ -1465,8 +1741,8 @@ function App() {
 
         <div className="status-strip">
           <span>
-            <Lock size={15} />
-            Invito
+            <AtSign size={15} />
+            Email
           </span>
           <span>
             <ShieldCheck size={15} />
@@ -1662,7 +1938,9 @@ function App() {
           />
         </aside>
       </main>
-    </div>
+      </div>
+      {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+    </>
   )
 }
 
@@ -1708,20 +1986,18 @@ function BackendStatusPanel({
   )
 }
 
-function InviteAccess({
-  ownProfile,
-  onAccess,
+function EmailAccess({
+  onSubmit,
   backendStatus,
+  backendDetail,
 }: {
-  ownProfile: OwnProfile
-  onAccess: (request: AccessRequest) => Promise<string | null>
+  onSubmit: (request: EmailAuthRequest) => Promise<string | null>
   backendStatus: BackendStatus
+  backendDetail: string
 }) {
-  const [inviteCode, setInviteCode] = useState('')
-  const [name, setName] = useState(ownProfile.displayName)
-  const [age, setAge] = useState(String(ownProfile.age))
-  const [city, setCity] = useState(ownProfile.city)
-  const [accepted, setAccepted] = useState(false)
+  const [mode, setMode] = useState<EmailAuthRequest['mode']>('login')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -1730,13 +2006,7 @@ function InviteAccess({
     setError('')
     setSubmitting(true)
 
-    const submitError = await onAccess({
-      inviteCode,
-      name,
-      age: Number(age),
-      city,
-      accepted,
-    })
+    const submitError = await onSubmit({ mode, email, password })
 
     if (submitError) {
       setError(submitError)
@@ -1750,81 +2020,74 @@ function InviteAccess({
       <section className="auth-panel" aria-labelledby="auth-title">
         <div className="auth-brand">
           <div className="brand-mark" aria-hidden="true">
-            <KeyRound size={22} />
+            <AtSign size={22} />
           </div>
           <div>
-            <p className="eyebrow">Solo invito · Gratis</p>
+            <p className="eyebrow">Email · invito dopo il login</p>
             <h1 id="auth-title">CerchiaMi</h1>
           </div>
         </div>
 
+        <div className="auth-mode" role="tablist" aria-label="Accesso">
+          <button
+            type="button"
+            className={mode === 'login' ? 'is-active' : ''}
+            onClick={() => setMode('login')}
+          >
+            Login
+          </button>
+          <button
+            type="button"
+            className={mode === 'signup' ? 'is-active' : ''}
+            onClick={() => setMode('signup')}
+          >
+            Crea account
+          </button>
+        </div>
+
         <form onSubmit={submit} className="auth-form">
           <label>
-            Codice invito
+            Email
             <input
-              value={inviteCode}
-              onChange={(event) => setInviteCode(event.target.value)}
-              autoComplete="one-time-code"
-              placeholder="CERCHIAMI-XXXX"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="email"
+              inputMode="email"
+              placeholder="nome@email.it"
+              type="email"
             />
           </label>
-
-          <div className="form-grid">
-            <label>
-              Nome
-              <input
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                autoComplete="given-name"
-                placeholder="Il tuo nome"
-              />
-            </label>
-
-            <label>
-              Eta
-              <input
-                value={age}
-                onChange={(event) => setAge(event.target.value)}
-                inputMode="numeric"
-                min="18"
-                type="number"
-              />
-            </label>
-          </div>
 
           <label>
-            Citta
+            Password
             <input
-              value={city}
-              onChange={(event) => setCity(event.target.value)}
-              autoComplete="address-level2"
-              placeholder="Milano"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              minLength={6}
+              placeholder="Minimo 6 caratteri"
+              type="password"
             />
-          </label>
-
-          <label className="check-row">
-            <input
-              type="checkbox"
-              checked={accepted}
-              onChange={(event) => setAccepted(event.target.checked)}
-            />
-            <span>Confermo 18+, consenso esplicito e comportamento rispettoso.</span>
           </label>
 
           <div className={`backend-note is-${backendStatus}`}>
             <Database size={16} />
             <span>
               {backendStatus === 'missing'
-                ? 'Pronta anche senza backend: i dati restano nel browser.'
-                : 'Se Supabase e attivo, profilo e chat vengono sincronizzati.'}
+                ? 'Login email richiede Supabase configurato online.'
+                : backendDetail}
             </span>
           </div>
 
           {error && <p className="form-error">{error}</p>}
 
           <button type="submit" className="primary-button" disabled={submitting}>
-            <Lock size={18} />
-            {submitting ? 'Accesso...' : 'Entra'}
+            {mode === 'signup' ? <UserPlus size={18} /> : <Lock size={18} />}
+            {submitting
+              ? 'Controllo...'
+              : mode === 'signup'
+                ? 'Crea account'
+                : 'Entra'}
           </button>
         </form>
       </section>
@@ -1844,6 +2107,413 @@ function InviteAccess({
         </div>
       </section>
     </main>
+  )
+}
+
+function AccountOnboarding({
+  email,
+  onComplete,
+  onLogout,
+}: {
+  email: string
+  onComplete: (draft: OnboardingDraft) => Promise<string | null>
+  onLogout: () => void
+}) {
+  const [step, setStep] = useState(0)
+  const [draft, setDraft] = useState<OnboardingDraft>({
+    inviteCode: '',
+    firstName: '',
+    lastName: '',
+    username: '',
+    birthDate: '',
+    city: '',
+    gender: '',
+    relationshipGoal: '',
+    interests: '',
+    bio: '',
+    availability: '',
+    sections: ['network', 'relationship'],
+    visibility: 'circle',
+    accepted: false,
+  })
+  const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const age = calculateAge(draft.birthDate)
+  const steps = [
+    'Invito',
+    'Identita',
+    'Username',
+    'Nascita',
+    'Citta',
+    'Obiettivo',
+    'Interessi',
+    'Bio',
+    'Regole',
+  ]
+
+  function updateDraft<K extends keyof OnboardingDraft>(
+    key: K,
+    value: OnboardingDraft[K],
+  ) {
+    setDraft((current) => ({ ...current, [key]: value }))
+  }
+
+  function toggleSection(section: SectionKey) {
+    setDraft((current) => {
+      const hasSection = current.sections.includes(section)
+      const sections = hasSection
+        ? current.sections.filter((item) => item !== section)
+        : [...current.sections, section]
+
+      return { ...current, sections }
+    })
+  }
+
+  function goNext() {
+    const stepError = validateOnboardingDraft(draft, step)
+
+    if (stepError) {
+      setError(stepError)
+      return
+    }
+
+    setError('')
+    setStep((current) => Math.min(current + 1, steps.length - 1))
+  }
+
+  async function submit() {
+    setError('')
+    setSubmitting(true)
+    const submitError = await onComplete(draft)
+
+    if (submitError) {
+      setError(submitError)
+    }
+
+    setSubmitting(false)
+  }
+
+  return (
+    <main className="onboarding-shell">
+      <section className="onboarding-frame" aria-labelledby="onboarding-title">
+        <div className="onboarding-top">
+          <div className="auth-brand">
+            <div className="brand-mark" aria-hidden="true">
+              <KeyRound size={22} />
+            </div>
+            <div>
+              <p className="eyebrow">{email || 'Account email'}</p>
+              <h1 id="onboarding-title">Costruisci il profilo</h1>
+            </div>
+          </div>
+          <button type="button" className="ghost-button" onClick={onLogout}>
+            Esci
+          </button>
+        </div>
+
+        <div className="step-track" aria-label="Avanzamento profilo">
+          {steps.map((label, index) => (
+            <span
+              key={label}
+              className={index === step ? 'is-active' : index < step ? 'is-done' : ''}
+            >
+              {index + 1}
+            </span>
+          ))}
+        </div>
+
+        <div className="onboarding-card" key={step}>
+          {step === 0 && (
+            <>
+              <p className="eyebrow">Accesso privato</p>
+              <h2>Codice invito</h2>
+              <label>
+                Codice
+                <input
+                  value={draft.inviteCode}
+                  onChange={(event) =>
+                    updateDraft('inviteCode', event.target.value.toUpperCase())
+                  }
+                  autoComplete="one-time-code"
+                  placeholder="CERCHIAMI-2026"
+                />
+              </label>
+            </>
+          )}
+
+          {step === 1 && (
+            <>
+              <p className="eyebrow">Dati reali</p>
+              <h2>Nome e cognome</h2>
+              <div className="form-grid">
+                <label>
+                  Nome
+                  <input
+                    value={draft.firstName}
+                    onChange={(event) =>
+                      updateDraft('firstName', event.target.value)
+                    }
+                    autoComplete="given-name"
+                    placeholder="Nome"
+                  />
+                </label>
+                <label>
+                  Cognome
+                  <input
+                    value={draft.lastName}
+                    onChange={(event) =>
+                      updateDraft('lastName', event.target.value)
+                    }
+                    autoComplete="family-name"
+                    placeholder="Cognome"
+                  />
+                </label>
+              </div>
+            </>
+          )}
+
+          {step === 2 && (
+            <>
+              <p className="eyebrow">Nome pubblico</p>
+              <h2>Soprannome</h2>
+              <label>
+                Username
+                <input
+                  value={draft.username}
+                  onChange={(event) =>
+                    updateDraft('username', normalizeUsername(event.target.value))
+                  }
+                  autoComplete="username"
+                  placeholder="mara.mi"
+                />
+              </label>
+            </>
+          )}
+
+          {step === 3 && (
+            <>
+              <p className="eyebrow">18+</p>
+              <h2>Data di nascita</h2>
+              <label>
+                Data
+                <input
+                  value={draft.birthDate}
+                  onChange={(event) =>
+                    updateDraft('birthDate', event.target.value)
+                  }
+                  type="date"
+                />
+              </label>
+              {age > 0 && <p className="field-hint">{age} anni</p>}
+            </>
+          )}
+
+          {step === 4 && (
+            <>
+              <p className="eyebrow">Zona</p>
+              <h2>Citta</h2>
+              <label>
+                Dove sei
+                <input
+                  value={draft.city}
+                  onChange={(event) => updateDraft('city', event.target.value)}
+                  autoComplete="address-level2"
+                  placeholder="Milano"
+                />
+              </label>
+            </>
+          )}
+
+          {step === 5 && (
+            <>
+              <p className="eyebrow">Direzione</p>
+              <h2>Chi sei e cosa cerchi</h2>
+              <div className="form-grid">
+                <label>
+                  Mi identifico come
+                  <select
+                    value={draft.gender}
+                    onChange={(event) => updateDraft('gender', event.target.value)}
+                  >
+                    <option value="">Scegli</option>
+                    <option value="woman">Donna</option>
+                    <option value="man">Uomo</option>
+                    <option value="non-binary">Non binario</option>
+                    <option value="private">Preferisco non dirlo</option>
+                  </select>
+                </label>
+                <label>
+                  Obiettivo
+                  <select
+                    value={draft.relationshipGoal}
+                    onChange={(event) =>
+                      updateDraft('relationshipGoal', event.target.value)
+                    }
+                  >
+                    <option value="">Scegli</option>
+                    <option value="friends">Amicizie e giri sociali</option>
+                    <option value="relationship">Relazione</option>
+                    <option value="network">Networking leggero</option>
+                    <option value="casual">Chimica senza pressione</option>
+                  </select>
+                </label>
+              </div>
+            </>
+          )}
+
+          {step === 6 && (
+            <>
+              <p className="eyebrow">Segnali</p>
+              <h2>Interessi</h2>
+              <label>
+                Separati da virgola
+                <input
+                  value={draft.interests}
+                  onChange={(event) =>
+                    updateDraft('interests', event.target.value)
+                  }
+                  placeholder="musica live, startup, cinema"
+                />
+              </label>
+            </>
+          )}
+
+          {step === 7 && (
+            <>
+              <p className="eyebrow">Contesto</p>
+              <h2>Bio e disponibilita</h2>
+              <label>
+                Bio
+                <textarea
+                  value={draft.bio}
+                  onChange={(event) => updateDraft('bio', event.target.value)}
+                  rows={4}
+                  placeholder="Racconta in modo semplice come ti piace conoscere persone."
+                />
+              </label>
+              <label>
+                Disponibilita
+                <input
+                  value={draft.availability}
+                  onChange={(event) =>
+                    updateDraft('availability', event.target.value)
+                  }
+                  placeholder="Sere in settimana, weekend, pausa pranzo"
+                />
+              </label>
+            </>
+          )}
+
+          {step === 8 && (
+            <>
+              <p className="eyebrow">Sezioni</p>
+              <h2>Visibilita e regole</h2>
+              <div className="choice-grid">
+                {Object.values(SECTION_META).map(({ key, label, Icon }) => (
+                  <button
+                    type="button"
+                    key={key}
+                    className={draft.sections.includes(key) ? 'is-active' : ''}
+                    onClick={() => toggleSection(key)}
+                  >
+                    <Icon size={18} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <label>
+                Visibilita
+                <select
+                  value={draft.visibility}
+                  onChange={(event) =>
+                    updateDraft(
+                      'visibility',
+                      event.target.value as OwnProfile['visibility'],
+                    )
+                  }
+                >
+                  <option value="circle">Cerchia privata</option>
+                  <option value="matches">Solo match</option>
+                </select>
+              </label>
+              <label className="check-row">
+                <input
+                  type="checkbox"
+                  checked={draft.accepted}
+                  onChange={(event) =>
+                    updateDraft('accepted', event.target.checked)
+                  }
+                />
+                <span>
+                  Confermo maggiore eta, consenso e comportamento rispettoso.
+                </span>
+              </label>
+            </>
+          )}
+        </div>
+
+        {error && <p className="form-error">{error}</p>}
+
+        <div className="onboarding-actions">
+          <button
+            type="button"
+            className="ghost-button"
+            onClick={() => {
+              setError('')
+              setStep((current) => Math.max(current - 1, 0))
+            }}
+            disabled={step === 0 || submitting}
+          >
+            Indietro
+          </button>
+          {step < steps.length - 1 ? (
+            <button type="button" className="primary-button" onClick={goNext}>
+              Avanti
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={submit}
+              disabled={submitting}
+            >
+              <Check size={18} />
+              {submitting ? 'Salvataggio...' : 'Completa'}
+            </button>
+          )}
+        </div>
+      </section>
+    </main>
+  )
+}
+
+function DisclaimerModal({ onAccept }: { onAccept: () => void }) {
+  return (
+    <div className="disclaimer-backdrop" role="presentation">
+      <section
+        className="disclaimer-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="disclaimer-title"
+      >
+        <div className="gate-icon" aria-hidden="true">
+          <ShieldCheck size={28} />
+        </div>
+        <div>
+          <p className="eyebrow">Promemoria giornaliero</p>
+          <h2 id="disclaimer-title">Stai bene dentro CerchiaMi</h2>
+          <p>
+            Usa l'app con rispetto. Evita pressioni, contenuti espliciti non
+            richiesti, nudi o clip video simili. Le conversazioni funzionano
+            meglio quando consenso e discrezione sono chiari.
+          </p>
+        </div>
+        <button type="button" className="primary-button" onClick={onAccept}>
+          <Check size={18} />
+          Ho capito
+        </button>
+      </section>
+    </div>
   )
 }
 
@@ -2131,6 +2801,67 @@ function OwnProfileEditor({
     <section className="profile-editor">
       <div className="form-grid">
         <label>
+          Nome
+          <input
+            value={profile.firstName}
+            onChange={(event) =>
+              setProfile((current) => ({
+                ...current,
+                firstName: event.target.value,
+              }))
+            }
+            autoComplete="given-name"
+          />
+        </label>
+
+        <label>
+          Cognome
+          <input
+            value={profile.lastName}
+            onChange={(event) =>
+              setProfile((current) => ({
+                ...current,
+                lastName: event.target.value,
+              }))
+            }
+            autoComplete="family-name"
+          />
+        </label>
+      </div>
+
+      <div className="form-grid">
+        <label>
+          Username
+          <input
+            value={profile.username}
+            onChange={(event) =>
+              setProfile((current) => ({
+                ...current,
+                username: normalizeUsername(event.target.value),
+              }))
+            }
+            autoComplete="username"
+          />
+        </label>
+
+        <label>
+          Data di nascita
+          <input
+            value={profile.birthDate}
+            type="date"
+            onChange={(event) =>
+              setProfile((current) => ({
+                ...current,
+                birthDate: event.target.value,
+                age: calculateAge(event.target.value),
+              }))
+            }
+          />
+        </label>
+      </div>
+
+      <div className="form-grid">
+        <label>
           Nome pubblico
           <input
             value={profile.displayName || session.name}
@@ -2144,30 +2875,58 @@ function OwnProfileEditor({
         </label>
 
         <label>
-          Eta
+          Citta
           <input
-            value={profile.age}
-            min="18"
-            type="number"
+            value={profile.city || session.city}
             onChange={(event) =>
               setProfile((current) => ({
                 ...current,
-                age: Number(event.target.value),
+                city: event.target.value,
               }))
             }
           />
         </label>
       </div>
 
-      <label>
-        Citta
-        <input
-          value={profile.city || session.city}
-          onChange={(event) =>
-            setProfile((current) => ({ ...current, city: event.target.value }))
-          }
-        />
-      </label>
+      <div className="form-grid">
+        <label>
+          Mi identifico come
+          <select
+            value={profile.gender}
+            onChange={(event) =>
+              setProfile((current) => ({
+                ...current,
+                gender: event.target.value,
+              }))
+            }
+          >
+            <option value="">Scegli</option>
+            <option value="woman">Donna</option>
+            <option value="man">Uomo</option>
+            <option value="non-binary">Non binario</option>
+            <option value="private">Preferisco non dirlo</option>
+          </select>
+        </label>
+
+        <label>
+          Obiettivo
+          <select
+            value={profile.relationshipGoal}
+            onChange={(event) =>
+              setProfile((current) => ({
+                ...current,
+                relationshipGoal: event.target.value,
+              }))
+            }
+          >
+            <option value="">Scegli</option>
+            <option value="friends">Amicizie e giri sociali</option>
+            <option value="relationship">Relazione</option>
+            <option value="network">Networking leggero</option>
+            <option value="casual">Chimica senza pressione</option>
+          </select>
+        </label>
+      </div>
 
       <label>
         Bio
@@ -2177,6 +2936,20 @@ function OwnProfileEditor({
             setProfile((current) => ({ ...current, bio: event.target.value }))
           }
           rows={4}
+        />
+      </label>
+
+      <label>
+        Interessi
+        <input
+          value={profile.interests.join(', ')}
+          onChange={(event) =>
+            setProfile((current) => ({
+              ...current,
+              interests: parseInterests(event.target.value),
+            }))
+          }
+          placeholder="musica live, startup, cinema"
         />
       </label>
 

@@ -2,6 +2,13 @@ create extension if not exists pgcrypto;
 
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
+  first_name text not null default '',
+  last_name text not null default '',
+  username text not null default '',
+  birth_date date,
+  gender text not null default '',
+  relationship_goal text not null default '',
+  interests text[] not null default array[]::text[],
   display_name text not null,
   age integer not null check (age >= 18),
   city text not null,
@@ -12,6 +19,19 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.profiles
+  add column if not exists first_name text not null default '',
+  add column if not exists last_name text not null default '',
+  add column if not exists username text not null default '',
+  add column if not exists birth_date date,
+  add column if not exists gender text not null default '',
+  add column if not exists relationship_goal text not null default '',
+  add column if not exists interests text[] not null default array[]::text[];
+
+create unique index if not exists profiles_username_unique
+  on public.profiles (lower(username))
+  where username <> '';
 
 create table if not exists public.invites (
   id uuid primary key default gen_random_uuid(),
