@@ -1491,56 +1491,83 @@ function App() {
         </div>
       )}
 
-      <header className="topbar">
-        <div className="brand-block">
-          <div className="brand-mark" aria-hidden="true">
-            <Users size={21} />
+      <div className="app-frame">
+        <header className="topbar">
+          <div className="brand-block">
+            <div className="brand-mark" aria-hidden="true">
+              <Users size={21} />
+            </div>
+            <div>
+              <h1>CerchiaMi</h1>
+              <p>Incontri privati, semplici, intenzionali.</p>
+            </div>
           </div>
-          <div>
-            <h1>CerchiaMi</h1>
-            <p>Incontri privati, semplici, intenzionali.</p>
-          </div>
-        </div>
 
-        <nav className="section-switcher" aria-label="Sezioni">
-          {Object.values(SECTION_META).map(({ key, label, Icon }) => (
+          <div className="nav-group">
+            <p className="nav-label">Sezione</p>
+            <nav className="section-switcher" aria-label="Sezioni">
+              {Object.values(SECTION_META).map(({ key, label, Icon }) => (
+                <button
+                  type="button"
+                  key={key}
+                  className={activeSection === key ? 'is-active' : ''}
+                  onClick={() => {
+                    setActiveSection(key)
+                    setActiveView('discover')
+                  }}
+                >
+                  <Icon size={17} />
+                  {label}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="nav-group">
+            <p className="nav-label">Vista</p>
+            <div className="view-tabs">
+              {[
+                ['discover', 'Scopri', Search],
+                ['compatible', 'Compatibili', Sparkles],
+                ['matches', 'Match', Heart],
+                ['invites', 'Inviti', KeyRound],
+                ['profile', 'Profilo', User],
+              ].map(([key, label, Icon]) => (
+                <button
+                  type="button"
+                  key={key as string}
+                  className={activeView === key ? 'is-active' : ''}
+                  onClick={() => setActiveView(key as ViewKey)}
+                >
+                  <Icon size={17} />
+                  {label as string}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="status-strip">
+            <span>
+              <AtSign size={15} />
+              Account
+            </span>
+            <span>
+              <ShieldCheck size={15} />
+              Privato
+            </span>
             <button
               type="button"
-              key={key}
-              className={activeSection === key ? 'is-active' : ''}
-              onClick={() => {
-                setActiveSection(key)
-                setActiveView('discover')
-              }}
+              className="icon-button"
+              onClick={logout}
+              aria-label="Esci"
+              title="Esci"
             >
-              <Icon size={17} />
-              {label}
+              <LogOut size={18} />
             </button>
-          ))}
-        </nav>
+          </div>
+        </header>
 
-        <div className="status-strip">
-          <span>
-            <AtSign size={15} />
-            Account
-          </span>
-          <span>
-            <ShieldCheck size={15} />
-            Privato
-          </span>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={logout}
-            aria-label="Esci"
-            title="Esci"
-          >
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
-
-      <div className="workspace">
+        <div className="workspace">
         <section className="main-pane">
           <div className="section-head">
             <div>
@@ -1552,26 +1579,6 @@ function App() {
               <strong>{visibleProfiles.length}</strong>
               <span>profili</span>
             </div>
-          </div>
-
-          <div className="view-tabs">
-            {[
-              ['discover', 'Scopri', Search],
-              ['compatible', 'Compatibili', Sparkles],
-              ['matches', 'Match', Heart],
-              ['invites', 'Inviti', KeyRound],
-              ['profile', 'Profilo', User],
-            ].map(([key, label, Icon]) => (
-              <button
-                type="button"
-                key={key as string}
-                className={activeView === key ? 'is-active' : ''}
-                onClick={() => setActiveView(key as ViewKey)}
-              >
-                <Icon size={17} />
-                {label as string}
-              </button>
-            ))}
           </div>
 
           {(activeView === 'discover' || activeView === 'compatible') && (
@@ -1763,6 +1770,7 @@ function App() {
             sendMessage={sendMessage}
           />
         </aside>
+        </div>
       </div>
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
@@ -2350,7 +2358,7 @@ function ProfileGrid({
 
   return (
     <div className="profile-grid">
-      {profiles.map((profile) => {
+      {profiles.map((profile, index) => {
         const liked = likedIds.includes(profile.id)
         const passed = passedIds.includes(profile.id)
         const matched = matchedIds.includes(profile.id)
@@ -2360,7 +2368,9 @@ function ProfileGrid({
         return (
           <article
             key={profile.id}
-            className={`profile-card ${passed ? 'is-muted' : ''}`}
+            className={`profile-card ${index === 0 ? 'is-featured' : ''} ${
+              passed ? 'is-muted' : ''
+            }`}
           >
             <div className="photo-frame">
               <img src={profile.image} alt={`${profile.name}, ${profile.age}`} />
