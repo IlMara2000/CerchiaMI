@@ -228,6 +228,27 @@ const RELATIONSHIP_GOALS = [
 
 const BASE_INVITES = ['CERCHIAMI-2026', 'PRIVATO-18', 'AMICI-001']
 
+const GROUP_IMAGES = {
+  rooftop:
+    'https://images.unsplash.com/photo-1758272133786-ee98adcc6837?auto=format&fit=crop&w=1400&q=82',
+  parkWalk:
+    'https://images.unsplash.com/photo-1758613170939-05179bed0f0c?auto=format&fit=crop&w=1400&q=82',
+  celebration:
+    'https://images.pexels.com/photos/8920142/pexels-photo-8920142.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  gaming:
+    'https://images.pexels.com/photos/9069367/pexels-photo-9069367.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  mountain:
+    'https://images.pexels.com/photos/11724800/pexels-photo-11724800.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  forest:
+    'https://images.pexels.com/photos/9630181/pexels-photo-9630181.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  roadTrip:
+    'https://images.pexels.com/photos/19336206/pexels-photo-19336206.jpeg?auto=compress&cs=tinysrgb&w=1400',
+  homeNight:
+    'https://images.pexels.com/photos/7776098/pexels-photo-7776098.jpeg?auto=compress&cs=tinysrgb&w=1400',
+}
+
+const GROUP_IMAGE_POOL = Object.values(GROUP_IMAGES)
+
 const EMPTY_PROFILE: OwnProfile = {
   firstName: '',
   lastName: '',
@@ -262,7 +283,7 @@ const PEOPLE: Profile[] = [
     city: 'Milano',
     distance: 3,
     role: 'Product designer',
-    image: 'https://randomuser.me/api/portraits/women/65.jpg',
+    image: GROUP_IMAGES.rooftop,
     sections: ['network', 'relationship'],
     tags: ['startup', 'mostre', 'vino naturale'],
     bio: 'Mi piace incontrare persone curiose, con idee da costruire e una vita fuori dallo schermo.',
@@ -284,7 +305,7 @@ const PEOPLE: Profile[] = [
     city: 'Roma',
     distance: 8,
     role: 'Creative director',
-    image: 'https://randomuser.me/api/portraits/men/32.jpg',
+    image: GROUP_IMAGES.homeNight,
     sections: ['relationship', 'night'],
     tags: ['cinema', 'cocktail', 'ironia'],
     bio: 'Cerco chimica, conversazioni sincere e persone che sanno dire cosa desiderano.',
@@ -306,7 +327,7 @@ const PEOPLE: Profile[] = [
     city: 'Torino',
     distance: 2,
     role: 'Data analyst',
-    image: 'https://randomuser.me/api/portraits/women/44.jpg',
+    image: GROUP_IMAGES.mountain,
     sections: ['network', 'relationship'],
     tags: ['trekking', 'lettura', 'AI'],
     bio: 'Energia tranquilla, zero giochi mentali, molti appunti su ristoranti da provare.',
@@ -328,7 +349,7 @@ const PEOPLE: Profile[] = [
     city: 'Bologna',
     distance: 5,
     role: 'Chef',
-    image: 'https://randomuser.me/api/portraits/men/75.jpg',
+    image: GROUP_IMAGES.celebration,
     sections: ['relationship', 'night'],
     tags: ['cucina', 'musica live', 'discrezione'],
     bio: 'Vivo bene con persone adulte, presenti e capaci di parlare dei propri limiti.',
@@ -350,7 +371,7 @@ const PEOPLE: Profile[] = [
     city: 'Firenze',
     distance: 11,
     role: 'Project manager',
-    image: 'https://randomuser.me/api/portraits/women/17.jpg',
+    image: GROUP_IMAGES.parkWalk,
     sections: ['network'],
     tags: ['design ops', 'podcast', 'caffe'],
     bio: 'Cerco persone con cui scambiare idee, contatti e magari aprire un progetto laterale.',
@@ -372,7 +393,7 @@ const PEOPLE: Profile[] = [
     city: 'Napoli',
     distance: 9,
     role: 'Fotografa',
-    image: 'https://randomuser.me/api/portraits/women/90.jpg',
+    image: GROUP_IMAGES.gaming,
     sections: ['night'],
     tags: ['arte', 'privacy', 'confini'],
     bio: 'Mi piace la leggerezza quando resta adulta: parole chiare, consenso e discrezione.',
@@ -463,8 +484,12 @@ function stableDistance(id: string, city: string, viewerCity: string) {
 }
 
 function avatarFor(name: string) {
-  const seed = encodeURIComponent(name.trim() || 'CerchiaMi')
-  return `https://api.dicebear.com/9.x/thumbs/svg?seed=${seed}&backgroundColor=ffd5dc,c0aede,b6e3f4,d1d4f9`
+  const hash = [...(name.trim() || 'CerchiaMi')].reduce(
+    (sum, char) => sum + char.charCodeAt(0),
+    0,
+  )
+
+  return GROUP_IMAGE_POOL[hash % GROUP_IMAGE_POOL.length]
 }
 
 function rowToOwnProfile(row: RemoteProfileRow): OwnProfile {
@@ -2373,7 +2398,10 @@ function ProfileGrid({
             }`}
           >
             <div className="photo-frame">
-              <img src={profile.image} alt={`${profile.name}, ${profile.age}`} />
+              <img
+                src={profile.image}
+                alt={`Momento condiviso collegato a ${profile.name}`}
+              />
               <div className="photo-badges">
                 <span>
                   <Sparkles size={14} />
