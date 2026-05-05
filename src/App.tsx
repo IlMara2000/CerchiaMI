@@ -1026,7 +1026,6 @@ function App() {
     void loadDisclaimerKey()
   }, [])
 
-  const activeMeta = SECTION_META[activeSection]
   const allProfiles = useMemo(() => {
     const remoteIds = new Set(remoteState.profiles.map((profile) => profile.id))
     return [...remoteState.profiles, ...PEOPLE.filter((profile) => !remoteIds.has(profile.id))]
@@ -1092,6 +1091,32 @@ function App() {
       ? remoteState.messages[selectedRemoteMatchId] ?? []
       : messages[selectedMatch.id] ?? []
     : []
+  const spotlightProfiles = (
+    activeView === 'compatible' ? compatibleProfiles : visibleProfiles
+  ).slice(0, 3)
+  const topSuggestion = compatibleProfiles[0] ?? visibleProfiles[0] ?? null
+  const screenCopy: Record<ViewKey, { title: string; body: string }> = {
+    discover: {
+      title: 'Persone per oggi',
+      body: 'Pochi profili, contesto chiaro e motivi reali per iniziare una conversazione.',
+    },
+    compatible: {
+      title: 'Compatibili con te',
+      body: 'Ordinati per intenzione, interessi comuni, distanza e disponibilita.',
+    },
+    matches: {
+      title: 'Match e conversazioni',
+      body: "Scegli una persona e scrivi quando c'e davvero interesse.",
+    },
+    invites: {
+      title: 'Inviti privati',
+      body: "Crea codici semplici per far entrare persone fidate nella tua cerchia.",
+    },
+    profile: {
+      title: 'Il tuo profilo',
+      body: 'Aggiorna come ti presenti, cosa cerchi e quando sei disponibile.',
+    },
+  }
 
   async function saveProfileToSupabase(userId: string, profile: OwnProfile) {
     if (!supabase) {
@@ -1506,7 +1531,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell section-${activeSection}`}>
       {notice && (
         <div className="notice" role="status">
           <span>{notice}</span>
@@ -1516,95 +1541,95 @@ function App() {
         </div>
       )}
 
-      <div className="app-frame">
-        <header className="topbar">
-          <div className="brand-block">
-            <div className="brand-mark" aria-hidden="true">
-              <Users size={21} />
-            </div>
-            <div>
-              <h1>CerchiaMi</h1>
-              <p>Incontri privati, semplici, intenzionali.</p>
-            </div>
+      <header className="app-topbar">
+        <div className="brand-block">
+          <div className="brand-mark" aria-hidden="true">
+            <Users size={21} />
           </div>
-
-          <div className="nav-group">
-            <p className="nav-label">Sezione</p>
-            <nav className="section-switcher" aria-label="Sezioni">
-              {Object.values(SECTION_META).map(({ key, label, Icon }) => (
-                <button
-                  type="button"
-                  key={key}
-                  className={activeSection === key ? 'is-active' : ''}
-                  onClick={() => {
-                    setActiveSection(key)
-                    setActiveView('discover')
-                  }}
-                >
-                  <Icon size={17} />
-                  {label}
-                </button>
-              ))}
-            </nav>
+          <div>
+            <h1>CerchiaMi</h1>
+            <p>
+              {session.city} · {session.age} anni
+            </p>
           </div>
+        </div>
 
-          <div className="nav-group">
-            <p className="nav-label">Vista</p>
-            <div className="view-tabs">
-              {[
-                ['discover', 'Scopri', Search],
-                ['compatible', 'Compatibili', Sparkles],
-                ['matches', 'Match', Heart],
-                ['invites', 'Inviti', KeyRound],
-                ['profile', 'Profilo', User],
-              ].map(([key, label, Icon]) => (
-                <button
-                  type="button"
-                  key={key as string}
-                  className={activeView === key ? 'is-active' : ''}
-                  onClick={() => setActiveView(key as ViewKey)}
-                >
-                  <Icon size={17} />
-                  {label as string}
-                </button>
-              ))}
-            </div>
-          </div>
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={logout}
+            aria-label="Esci"
+            title="Esci"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </header>
 
-          <div className="status-strip">
-            <span>
-              <AtSign size={15} />
-              Account
-            </span>
-            <span>
-              <ShieldCheck size={15} />
-              Privato
-            </span>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={logout}
-              aria-label="Esci"
-              title="Esci"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-        </header>
+      <nav className="section-rail" aria-label="Sezioni">
+        {Object.values(SECTION_META).map(({ key, label, Icon }) => (
+          <button
+            type="button"
+            key={key}
+            className={activeSection === key ? 'is-active' : ''}
+            onClick={() => {
+              setActiveSection(key)
+              setActiveView('discover')
+            }}
+          >
+            <Icon size={17} />
+            {label}
+          </button>
+        ))}
+      </nav>
 
-        <div className="workspace">
+      <div className="app-stage">
         <section className="main-pane">
-          <div className="section-head">
-            <div>
-              <p className="eyebrow">{activeMeta.label}</p>
-              <h2>{activeMeta.title}</h2>
-              <p>{activeMeta.detail}</p>
+          <section className="daily-hero" aria-labelledby="screen-title">
+            <div className="daily-copy">
+              <h2 id="screen-title">{screenCopy[activeView].title}</h2>
+              <p>{screenCopy[activeView].body}</p>
+              {topSuggestion && activeView !== 'profile' && (
+                <div className="today-suggestion">
+                  <Sparkles size={17} />
+                  <span>
+                    {topSuggestion.name}:{' '}
+                    {compatibilityScore(topSuggestion, ownProfile, activeSection)}
+                    % compatibile
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="section-count" aria-label="Profili visibili">
-              <strong>{visibleProfiles.length}</strong>
-              <span>profili</span>
+
+            <div className="quick-stats" aria-label="Riepilogo">
+              <div>
+                <strong>{visibleProfiles.length}</strong>
+                <span>profili</span>
+              </div>
+              <div>
+                <strong>{matchProfiles.length}</strong>
+                <span>match</span>
+              </div>
+              <div>
+                <strong>{effectiveLikedIds.length}</strong>
+                <span>interessi</span>
+              </div>
             </div>
-          </div>
+
+            <div className="hero-photo-strip" aria-hidden="true">
+              {(spotlightProfiles.length ? spotlightProfiles : PEOPLE.slice(0, 3)).map(
+                (profile, index) => (
+                  <img
+                    key={`${profile.id}-${index}`}
+                    src={profile.image}
+                    alt=""
+                    className={index === 0 ? 'is-main' : ''}
+                  />
+                ),
+              )}
+            </div>
+          </section>
 
           {(activeView === 'discover' || activeView === 'compatible') && (
             <>
@@ -1614,7 +1639,7 @@ function App() {
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Cerca per citta, interessi, nome"
+                    placeholder="Cerca interessi, citta, nome"
                   />
                 </label>
 
@@ -1675,7 +1700,7 @@ function App() {
                     checked={availableOnly}
                     onChange={(event) => setAvailableOnly(event.target.checked)}
                   />
-                  Disponibili oggi
+                  Oggi
                 </label>
               </div>
 
@@ -1701,11 +1726,20 @@ function App() {
           )}
 
           {activeView === 'matches' && (
-            <MatchesView
-              profiles={matchProfiles}
-              selectedId={selectedMatch?.id ?? null}
-              setSelectedId={setSelectedMatchId}
-            />
+            <section className="match-board">
+              <MatchesView
+                profiles={matchProfiles}
+                selectedId={selectedMatch?.id ?? null}
+                setSelectedId={setSelectedMatchId}
+              />
+              <ChatPanel
+                selectedMatch={selectedMatch}
+                messages={currentMessages}
+                draftMessage={draftMessage}
+                setDraftMessage={setDraftMessage}
+                sendMessage={sendMessage}
+              />
+            </section>
           )}
 
           {activeView === 'invites' && (
@@ -1728,75 +1762,27 @@ function App() {
             />
           )}
         </section>
-
-        <aside className="side-pane" aria-label="Chat e riepilogo">
-          <div className="user-summary">
-            <div>
-              <p className="eyebrow">Il tuo spazio</p>
-              <h2>{session.name}</h2>
-              <p>
-                {session.city} · {session.age} anni
-              </p>
-            </div>
-            <BadgeCheck size={24} />
-          </div>
-
-          <div className="stats-grid">
-            <div>
-              <strong>{effectiveLikedIds.length}</strong>
-              <span>interessi</span>
-            </div>
-            <div>
-              <strong>{matchProfiles.length}</strong>
-              <span>match</span>
-            </div>
-            <div>
-              <strong>{remoteState.invites.length + invites.length}</strong>
-              <span>inviti</span>
-            </div>
-          </div>
-
-          <section className="dating-card" aria-label="Suggerimento match">
-            <Sparkles size={20} />
-            <span>
-              <strong>
-                {compatibleProfiles[0]
-                  ? `${compatibleProfiles[0].name}: ${compatibilityScore(
-                      compatibleProfiles[0],
-                      ownProfile,
-                      activeSection,
-                    )}% compatibilita`
-                  : relationshipGoalLabel(ownProfile.relationshipGoal)}
-              </strong>
-              <small>
-                {compatibleProfiles[0]
-                  ? compatibleProfiles[0].dateIdea
-                  : 'Completa preferenze e interessi per affinare i profili.'}
-              </small>
-            </span>
-          </section>
-
-          <section className="side-note" aria-label="Promemoria">
-            <ShieldCheck size={20} />
-            <span>
-              <strong>Ambiente riservato</strong>
-              <small>
-                Scrivi solo quando c'e interesse reale e mantieni chiari i
-                confini.
-              </small>
-            </span>
-          </section>
-
-          <ChatPanel
-            selectedMatch={selectedMatch}
-            messages={currentMessages}
-            draftMessage={draftMessage}
-            setDraftMessage={setDraftMessage}
-            sendMessage={sendMessage}
-          />
-        </aside>
-        </div>
       </div>
+
+      <nav className="bottom-nav" aria-label="Navigazione principale">
+        {[
+          ['discover', 'Scopri', Search],
+          ['compatible', 'Compatibili', Sparkles],
+          ['matches', 'Match', Heart],
+          ['invites', 'Inviti', KeyRound],
+          ['profile', 'Profilo', User],
+        ].map(([key, label, Icon]) => (
+          <button
+            type="button"
+            key={key as string}
+            className={activeView === key ? 'is-active' : ''}
+            onClick={() => setActiveView(key as ViewKey)}
+          >
+            <Icon size={19} />
+            <span>{label as string}</span>
+          </button>
+        ))}
+      </nav>
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
     </main>
