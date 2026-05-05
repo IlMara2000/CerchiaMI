@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import type { Dispatch, FormEvent, SetStateAction } from 'react'
+import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   AtSign,
@@ -30,7 +30,7 @@ import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
 type ViewKey = 'discover' | 'compatible' | 'matches' | 'invites' | 'profile'
-type ProfileSource = 'demo' | 'remote'
+type ProfileSource = 'remote'
 
 type SectionMeta = {
   key: SectionKey
@@ -248,6 +248,14 @@ const GROUP_IMAGES = {
 }
 
 const GROUP_IMAGE_POOL = Object.values(GROUP_IMAGES)
+const LEGACY_DEMO_PROFILE_IDS = [
+  'sofia',
+  'luca',
+  'giulia',
+  'marco',
+  'marta',
+  'elena',
+]
 
 const EMPTY_PROFILE: OwnProfile = {
   firstName: '',
@@ -274,141 +282,6 @@ const REMOTE_STATE_EMPTY: RemoteState = {
   messages: {},
   matchByProfileId: {},
 }
-
-const PEOPLE: Profile[] = [
-  {
-    id: 'sofia',
-    name: 'Sofia',
-    age: 31,
-    city: 'Milano',
-    distance: 3,
-    role: 'Product designer',
-    image: GROUP_IMAGES.rooftop,
-    sections: ['network', 'relationship'],
-    tags: ['startup', 'mostre', 'vino naturale'],
-    bio: 'Mi piace incontrare persone curiose, con idee da costruire e una vita fuori dallo schermo.',
-    availability: 'Aperitivo dopo le 19',
-    intentNote: 'Caffe, progetto o cena senza fretta.',
-    relationshipGoal: 'slow-dating',
-    values: ['curiosita', 'indipendenza', 'dialogo'],
-    prompt: 'Mi conquistano le persone che sanno fare domande belle.',
-    dateIdea: 'Mostra piccola e bicchiere in zona Porta Venezia.',
-    verified: true,
-    availableToday: true,
-    likedYou: true,
-    source: 'demo',
-  },
-  {
-    id: 'luca',
-    name: 'Luca',
-    age: 34,
-    city: 'Roma',
-    distance: 8,
-    role: 'Creative director',
-    image: GROUP_IMAGES.homeNight,
-    sections: ['relationship', 'night'],
-    tags: ['cinema', 'cocktail', 'ironia'],
-    bio: 'Cerco chimica, conversazioni sincere e persone che sanno dire cosa desiderano.',
-    availability: 'Weekend sera',
-    intentNote: 'Prima si capisce il tono, poi si decide insieme.',
-    relationshipGoal: 'casual',
-    values: ['ironia', 'chiarezza', 'presenza'],
-    prompt: 'Il miglior primo messaggio e diretto ma leggero.',
-    dateIdea: 'Cocktail bar tranquillo, un tavolo e niente fretta.',
-    verified: true,
-    availableToday: false,
-    likedYou: false,
-    source: 'demo',
-  },
-  {
-    id: 'giulia',
-    name: 'Giulia',
-    age: 29,
-    city: 'Torino',
-    distance: 2,
-    role: 'Data analyst',
-    image: GROUP_IMAGES.mountain,
-    sections: ['network', 'relationship'],
-    tags: ['trekking', 'lettura', 'AI'],
-    bio: 'Energia tranquilla, zero giochi mentali, molti appunti su ristoranti da provare.',
-    availability: 'Pausa pranzo o sabato',
-    intentNote: 'Amicizia prima, poi si vede.',
-    relationshipGoal: 'slow-dating',
-    values: ['gentilezza', 'costanza', 'curiosita'],
-    prompt: 'Parlami di un posto dove torneresti domani.',
-    dateIdea: 'Passeggiata al mercato e pranzo semplice.',
-    verified: true,
-    availableToday: true,
-    likedYou: false,
-    source: 'demo',
-  },
-  {
-    id: 'marco',
-    name: 'Marco',
-    age: 36,
-    city: 'Bologna',
-    distance: 5,
-    role: 'Chef',
-    image: GROUP_IMAGES.celebration,
-    sections: ['relationship', 'night'],
-    tags: ['cucina', 'musica live', 'discrezione'],
-    bio: 'Vivo bene con persone adulte, presenti e capaci di parlare dei propri limiti.',
-    availability: 'Dopo servizio',
-    intentNote: 'Chiarezza, rispetto e nessuna pressione.',
-    relationshipGoal: 'casual',
-    values: ['consenso', 'privacy', 'maturita'],
-    prompt: 'Mi piace quando i confini sono detti bene, non indovinati.',
-    dateIdea: 'Cena tardi, poca folla e conversazione schietta.',
-    verified: true,
-    availableToday: true,
-    likedYou: true,
-    source: 'demo',
-  },
-  {
-    id: 'marta',
-    name: 'Marta',
-    age: 33,
-    city: 'Firenze',
-    distance: 11,
-    role: 'Project manager',
-    image: GROUP_IMAGES.parkWalk,
-    sections: ['network'],
-    tags: ['design ops', 'podcast', 'caffe'],
-    bio: 'Cerco persone con cui scambiare idee, contatti e magari aprire un progetto laterale.',
-    availability: 'Mattine e giovedi sera',
-    intentNote: 'Uscite leggere e nuove persone.',
-    relationshipGoal: 'friends',
-    values: ['leggerezza', 'ambizione', 'ascolto'],
-    prompt: 'Un buon incontro lascia energia, non confusione.',
-    dateIdea: 'Caffe lungo e giro in libreria.',
-    verified: false,
-    availableToday: false,
-    likedYou: false,
-    source: 'demo',
-  },
-  {
-    id: 'elena',
-    name: 'Elena',
-    age: 38,
-    city: 'Napoli',
-    distance: 9,
-    role: 'Fotografa',
-    image: GROUP_IMAGES.gaming,
-    sections: ['night'],
-    tags: ['arte', 'privacy', 'confini'],
-    bio: 'Mi piace la leggerezza quando resta adulta: parole chiare, consenso e discrezione.',
-    availability: 'Venerdi tardi',
-    intentNote: 'Chimica, privacy e rispetto reciproco.',
-    relationshipGoal: 'casual',
-    values: ['discrezione', 'consenso', 'eleganza'],
-    prompt: 'La chimica migliore non forza mai i tempi.',
-    dateIdea: 'Drink dopo cena in un posto riservato.',
-    verified: true,
-    availableToday: false,
-    likedYou: true,
-    source: 'demo',
-  },
-]
 
 const STORAGE = {
   session: 'cerchiami.session',
@@ -806,6 +679,7 @@ function App() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [disclaimerKey, setDisclaimerKey] = useState('')
   const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [launchOpen, setLaunchOpen] = useState(false)
 
   const refreshRemoteData = useCallback(
     async (userId: string, viewerCity = ownProfile.city) => {
@@ -1026,12 +900,35 @@ function App() {
     void loadDisclaimerKey()
   }, [])
 
-  const allProfiles = useMemo(() => {
-    const remoteIds = new Set(remoteState.profiles.map((profile) => profile.id))
-    return [...remoteState.profiles, ...PEOPLE.filter((profile) => !remoteIds.has(profile.id))]
-  }, [remoteState.profiles])
-  const effectiveLikedIds = unique([...likedIds, ...remoteState.likedIds])
-  const effectiveMatchedIds = unique([...matchedIds, ...remoteState.matchedIds])
+  useEffect(() => {
+    const isLegacyDemoId = (id: string) => LEGACY_DEMO_PROFILE_IDS.includes(id)
+
+    setLikedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
+    setPassedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
+    setMatchedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
+    setMessages((current) => {
+      const nextMessages = { ...current }
+
+      LEGACY_DEMO_PROFILE_IDS.forEach((id) => {
+        delete nextMessages[id]
+      })
+
+      return nextMessages
+    })
+  }, [setLikedIds, setMatchedIds, setMessages, setPassedIds])
+
+  const allProfiles = remoteState.profiles
+  const allProfileIds = useMemo(
+    () => new Set(allProfiles.map((profile) => profile.id)),
+    [allProfiles],
+  )
+  const effectiveLikedIds = unique([...likedIds, ...remoteState.likedIds]).filter(
+    (id) => allProfileIds.has(id),
+  )
+  const effectiveMatchedIds = unique([
+    ...matchedIds,
+    ...remoteState.matchedIds,
+  ]).filter((id) => allProfileIds.has(id))
   const visibleProfiles = useMemo(
     () =>
       allProfiles.filter((profile) => {
@@ -1094,6 +991,9 @@ function App() {
   const spotlightProfiles = (
     activeView === 'compatible' ? compatibleProfiles : visibleProfiles
   ).slice(0, 3)
+  const spotlightImages = spotlightProfiles.length
+    ? spotlightProfiles.map((profile) => profile.image)
+    : GROUP_IMAGE_POOL.slice(0, 3)
   const topSuggestion = compatibleProfiles[0] ?? visibleProfiles[0] ?? null
   const screenCopy: Record<ViewKey, { title: string; body: string }> = {
     discover: {
@@ -1296,6 +1196,7 @@ function App() {
     setCurrentUserId(null)
     setOnboardingUserId(null)
     setRemoteState(REMOTE_STATE_EMPTY)
+    setLaunchOpen(false)
   }
 
   async function likeProfile(profile: Profile) {
@@ -1514,6 +1415,10 @@ function App() {
     }
   }
 
+  if (!launchOpen) {
+    return <LaunchScreen onStart={() => setLaunchOpen(true)} />
+  }
+
   if (!session) {
     return (
       <>
@@ -1547,7 +1452,10 @@ function App() {
             <Users size={21} />
           </div>
           <div>
-            <h1>CerchiaMi</h1>
+            <h1 className="wordmark">
+              <span>Cerchia</span>
+              <span>Mi</span>
+            </h1>
             <p>
               {session.city} · {session.age} anni
             </p>
@@ -1584,6 +1492,49 @@ function App() {
         ))}
       </nav>
 
+      <div className="mood-chips" aria-label="Filtri rapidi">
+        <button
+          type="button"
+          className={availableOnly ? 'is-active' : ''}
+          onClick={() => setAvailableOnly((current) => !current)}
+        >
+          <Calendar size={17} />
+          Oggi
+        </button>
+        <button
+          type="button"
+          className={maxDistance <= 5 ? 'is-active' : ''}
+          onClick={() => setMaxDistance(maxDistance <= 5 ? 25 : 5)}
+        >
+          <MapPin size={17} />
+          Vicini
+        </button>
+        <button
+          type="button"
+          className={query.toLowerCase() === 'musica' ? 'is-active' : ''}
+          onClick={() =>
+            setQuery((current) =>
+              current.toLowerCase() === 'musica' ? '' : 'musica',
+            )
+          }
+        >
+          <MessageCircle size={17} />
+          Musica
+        </button>
+        <button
+          type="button"
+          className={query.toLowerCase() === 'viaggi' ? 'is-active' : ''}
+          onClick={() =>
+            setQuery((current) =>
+              current.toLowerCase() === 'viaggi' ? '' : 'viaggi',
+            )
+          }
+        >
+          <Sparkles size={17} />
+          Viaggi
+        </button>
+      </div>
+
       <div className="app-stage">
         <section className="main-pane">
           <section className="daily-hero" aria-labelledby="screen-title">
@@ -1618,16 +1569,14 @@ function App() {
             </div>
 
             <div className="hero-photo-strip" aria-hidden="true">
-              {(spotlightProfiles.length ? spotlightProfiles : PEOPLE.slice(0, 3)).map(
-                (profile, index) => (
+              {spotlightImages.map((image, index) => (
                   <img
-                    key={`${profile.id}-${index}`}
-                    src={profile.image}
+                    key={`${image}-${index}`}
+                    src={image}
                     alt=""
                     className={index === 0 ? 'is-main' : ''}
                   />
-                ),
-              )}
+                ))}
             </div>
           </section>
 
@@ -1789,6 +1738,24 @@ function App() {
   )
 }
 
+function LaunchScreen({ onStart }: { onStart: () => void }) {
+  return (
+    <main className="launch-shell">
+      <h1 className="sr-only">CerchiaMi</h1>
+      <button type="button" className="launch-button" onClick={onStart}>
+        <span className="launch-logo" aria-hidden="true">
+          <Users size={34} />
+        </span>
+        <span className="launch-wordmark">
+          <span>Cerchia</span>
+          <span>Mi</span>
+        </span>
+        <span className="launch-hint">Tocca per iniziare</span>
+      </button>
+    </main>
+  )
+}
+
 function EmailAccess({
   onSubmit,
 }: {
@@ -1830,7 +1797,10 @@ function EmailAccess({
           </div>
           <div>
             <p className="eyebrow">Accesso riservato</p>
-            <h1 id="auth-title">CerchiaMi</h1>
+            <h1 id="auth-title" className="wordmark">
+              <span>Cerchia</span>
+              <span>Mi</span>
+            </h1>
           </div>
         </div>
 
@@ -1901,15 +1871,15 @@ function EmailAccess({
 
       <section className="auth-preview" aria-label="Profili in evidenza">
         <div className="preview-photo is-large">
-          <img src={PEOPLE[0].image} alt="" />
+          <img src={GROUP_IMAGES.rooftop} alt="" />
           <span>Scopri</span>
         </div>
         <div className="preview-photo">
-          <img src={PEOPLE[3].image} alt="" />
+          <img src={GROUP_IMAGES.celebration} alt="" />
           <span>Relazione</span>
         </div>
         <div className="preview-photo is-small">
-          <img src={PEOPLE[5].image} alt="" />
+          <img src={GROUP_IMAGES.gaming} alt="" />
           <span>18+</span>
         </div>
       </section>
@@ -2361,8 +2331,10 @@ function ProfileGrid({
     return (
       <div className="empty-state">
         <Search size={24} />
-        <h3>Nessun profilo trovato</h3>
-        <p>Allarga distanza o rimuovi i filtri attivi.</p>
+        <h3>Nessun profilo reale disponibile</h3>
+        <p>
+          Quando entrano persone reali nella tua cerchia, le vedrai qui.
+        </p>
       </div>
     )
   }
@@ -2388,6 +2360,32 @@ function ProfileGrid({
                 src={profile.image}
                 alt={`Momento condiviso collegato a ${profile.name}`}
               />
+              <span className="photo-count">{index + 1}/{profiles.length}</span>
+              <span className="photo-save" aria-hidden="true">
+                <Heart size={20} />
+              </span>
+              <div className="photo-identity">
+                <span>
+                  <strong>
+                    {profile.name}, {profile.age}
+                  </strong>
+                  <small>
+                    <MapPin size={15} />
+                    {profile.city} · {profile.distance} km da te
+                  </small>
+                </span>
+                <span
+                  className="score-ring"
+                  style={
+                    {
+                      '--score-angle': `${score * 3.6}deg`,
+                    } as CSSProperties
+                  }
+                >
+                  <strong>{score}%</strong>
+                  <small>compat.</small>
+                </span>
+              </div>
               <div className="photo-badges">
                 <span>
                   <Sparkles size={14} />
