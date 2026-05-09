@@ -219,6 +219,14 @@ const SECTION_META: Record<SectionKey, SectionMeta> = {
   },
 }
 
+const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
+  { key: 'discover', label: 'Scopri', Icon: Search },
+  { key: 'compatible', label: 'Compatibili', Icon: Sparkles },
+  { key: 'matches', label: 'Match', Icon: Heart },
+  { key: 'invites', label: 'Inviti', Icon: KeyRound },
+  { key: 'profile', label: 'Profilo', Icon: User },
+]
+
 const RELATIONSHIP_GOALS = [
   { value: 'relationship', label: 'Relazione stabile' },
   { value: 'slow-dating', label: 'Conoscenza con calma' },
@@ -680,12 +688,15 @@ function App() {
   const [disclaimerKey, setDisclaimerKey] = useState('')
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
+  const [remoteLoading, setRemoteLoading] = useState(false)
 
   const refreshRemoteData = useCallback(
     async (userId: string, viewerCity = ownProfile.city) => {
       if (!supabase) {
         return
       }
+
+      setRemoteLoading(true)
 
       try {
         const [profilesResult, likesResult, matchesResult, invitesResult] =
@@ -796,6 +807,9 @@ function App() {
         })
       } catch (error) {
         console.error(error)
+        setNotice('Non riesco a caricare i dati in questo momento.')
+      } finally {
+        setRemoteLoading(false)
       }
     },
     [ownProfile.city],
@@ -1492,6 +1506,12 @@ function App() {
         ))}
       </nav>
 
+      <PrimaryNav
+        className="desktop-nav"
+        activeView={activeView}
+        setActiveView={setActiveView}
+      />
+
       <div className="mood-chips" aria-label="Filtri rapidi">
         <button
           type="button"
@@ -1662,6 +1682,7 @@ function App() {
                       ? compatibleProfiles
                       : visibleProfiles
                   }
+                  isLoading={remoteLoading}
                   viewerProfile={ownProfile}
                   activeSection={activeSection}
                   likedIds={effectiveLikedIds}
@@ -1669,6 +1690,8 @@ function App() {
                   matchedIds={effectiveMatchedIds}
                   onLike={likeProfile}
                   onPass={passProfile}
+                  onOpenInvites={() => setActiveView('invites')}
+                  onOpenProfile={() => setActiveView('profile')}
                 />
               )}
             </>
@@ -1713,28 +1736,40 @@ function App() {
         </section>
       </div>
 
-      <nav className="bottom-nav" aria-label="Navigazione principale">
-        {[
-          ['discover', 'Scopri', Search],
-          ['compatible', 'Compatibili', Sparkles],
-          ['matches', 'Match', Heart],
-          ['invites', 'Inviti', KeyRound],
-          ['profile', 'Profilo', User],
-        ].map(([key, label, Icon]) => (
-          <button
-            type="button"
-            key={key as string}
-            className={activeView === key ? 'is-active' : ''}
-            onClick={() => setActiveView(key as ViewKey)}
-          >
-            <Icon size={19} />
-            <span>{label as string}</span>
-          </button>
-        ))}
-      </nav>
+      <PrimaryNav
+        className="bottom-nav"
+        activeView={activeView}
+        setActiveView={setActiveView}
+      />
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
     </main>
+  )
+}
+
+function PrimaryNav({
+  activeView,
+  setActiveView,
+  className,
+}: {
+  activeView: ViewKey
+  setActiveView: Dispatch<SetStateAction<ViewKey>>
+  className: string
+}) {
+  return (
+    <nav className={className} aria-label="Navigazione principale">
+      {PRIMARY_NAV_ITEMS.map(({ key, label, Icon }) => (
+        <button
+          type="button"
+          key={key}
+          className={activeView === key ? 'is-active' : ''}
+          onClick={() => setActiveView(key)}
+        >
+          <Icon size={19} />
+          <span>{label}</span>
+        </button>
+      ))}
+    </nav>
   )
 }
 
@@ -1997,7 +2032,11 @@ function OnboardingFlow({
           ))}
         </div>
 
-        <div className="onboarding-card">
+        <div className="step-meter" aria-hidden="true">
+          <span style={{ width: `${((step + 1) / steps.length) * 100}%` }} />
+        </div>
+
+        <div className="onboarding-card" key={step}>
           {step === 0 && (
             <>
               <p className="eyebrow">Invito</p>
@@ -2310,6 +2349,7 @@ function NightGate({ onAccept }: { onAccept: () => void }) {
 
 function ProfileGrid({
   profiles,
+  isLoading,
   viewerProfile,
   activeSection,
   likedIds,
@@ -2317,8 +2357,11 @@ function ProfileGrid({
   matchedIds,
   onLike,
   onPass,
+  onOpenInvites,
+  onOpenProfile,
 }: {
   profiles: Profile[]
+  isLoading: boolean
   viewerProfile: OwnProfile
   activeSection: SectionKey
   likedIds: string[]
@@ -2326,16 +2369,24 @@ function ProfileGrid({
   matchedIds: string[]
   onLike: (profile: Profile) => void
   onPass: (profile: Profile) => void
+  onOpenInvites: () => void
+  onOpenProfile: () => void
 }) {
+  if (isLoading) {
+    return <ProfileSkeleton />
+  }
+
   if (!profiles.length) {
     return (
-      <div className="empty-state">
-        <Search size={24} />
-        <h3>Nessun profilo reale disponibile</h3>
-        <p>
-          Quando entrano persone reali nella tua cerchia, le vedrai qui.
-        </p>
-      </div>
+      <EmptyState
+        Icon={Search}
+        title="Nessun profilo reale disponibile"
+        description="Quando entrano persone reali nella tua cerchia, le vedrai qui. Nel frattempo puoi sistemare il profilo o invitare persone fidate."
+        actions={[
+          { label: 'Invita persone', Icon: KeyRound, onClick: onOpenInvites },
+          { label: 'Completa profilo', Icon: User, onClick: onOpenProfile },
+        ]}
+      />
     )
   }
 
@@ -2487,11 +2538,11 @@ function MatchesView({
 }) {
   if (!profiles.length) {
     return (
-      <div className="empty-state">
-        <Heart size={24} />
-        <h3>Nessun match ancora</h3>
-        <p>Metti interesse ai profili: alcuni hanno gia ricambiato.</p>
-      </div>
+      <EmptyState
+        Icon={Heart}
+        title="Nessun match ancora"
+        description="Quando tu e un'altra persona vi scegliete, la chat compare qui."
+      />
     )
   }
 
@@ -2511,6 +2562,70 @@ function MatchesView({
           </span>
           <MessageCircle size={18} />
         </button>
+      ))}
+    </div>
+  )
+}
+
+function EmptyState({
+  Icon,
+  title,
+  description,
+  actions = [],
+}: {
+  Icon: LucideIcon
+  title: string
+  description: string
+  actions?: { label: string; Icon: LucideIcon; onClick: () => void }[]
+}) {
+  return (
+    <div className="empty-state">
+      <div className="empty-orbit" aria-hidden="true">
+        <Icon size={27} />
+      </div>
+      <div>
+        <h3>{title}</h3>
+        <p>{description}</p>
+      </div>
+      {actions.length > 0 && (
+        <div className="empty-actions">
+          {actions.map(({ label, Icon: ActionIcon, onClick }) => (
+            <button
+              type="button"
+              className="ghost-button"
+              key={label}
+              onClick={onClick}
+            >
+              <ActionIcon size={17} />
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ProfileSkeleton() {
+  return (
+    <div className="profile-grid" aria-label="Caricamento profili">
+      {[0, 1, 2].map((item) => (
+        <article
+          className={`profile-card skeleton-card ${item === 0 ? 'is-featured' : ''}`}
+          key={item}
+        >
+          <div className="photo-frame skeleton-block" />
+          <div className="profile-body">
+            <span className="skeleton-line is-wide" />
+            <span className="skeleton-line" />
+            <span className="skeleton-line is-short" />
+            <div className="tag-row">
+              <span className="skeleton-pill" />
+              <span className="skeleton-pill" />
+              <span className="skeleton-pill" />
+            </div>
+          </div>
+        </article>
       ))}
     </div>
   )
