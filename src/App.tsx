@@ -219,6 +219,15 @@ const SECTION_META: Record<SectionKey, SectionMeta> = {
   },
 }
 
+const AMBIENT_PALETTES: Record<
+  SectionKey,
+  { primary: string; secondary: string }
+> = {
+  network: { primary: '#087e75', secondary: '#ff5348' },
+  relationship: { primary: '#d94f66', secondary: '#23d0b0' },
+  night: { primary: '#5c54d8', secondary: '#ff5348' },
+}
+
 const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'discover', label: 'Scopri', Icon: Search },
   { key: 'matches', label: 'Match', Icon: Heart },
@@ -1808,6 +1817,15 @@ function PrimaryNav({
 
 function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const activeSectionRef = useRef(activeSection)
+  const sceneControllerRef = useRef<{
+    applyPalette: (section: SectionKey) => void
+  } | null>(null)
+
+  useEffect(() => {
+    activeSectionRef.current = activeSection
+    sceneControllerRef.current?.applyPalette(activeSection)
+  }, [activeSection])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -1823,32 +1841,33 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
         return
       }
 
-      const reduceMotion = window.matchMedia(
-        '(prefers-reduced-motion: reduce)',
-      ).matches
-      const palette = {
-        network: { primary: '#087e75', secondary: '#ff5348' },
-        relationship: { primary: '#d94f66', secondary: '#23d0b0' },
-        night: { primary: '#5c54d8', secondary: '#ff5348' },
-      }[activeSection]
-      const renderer = new THREE.WebGLRenderer({
-        alpha: true,
-        antialias: true,
-        canvas,
-        preserveDrawingBuffer: true,
-      })
+      const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
+      let reduceMotion = mediaQuery.matches
+      let renderer: InstanceType<typeof THREE.WebGLRenderer>
+
+      try {
+        renderer = new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: true,
+          canvas,
+          preserveDrawingBuffer: window.location.search.includes('qa='),
+        })
+      } catch (error) {
+        console.warn('Ambient 3D scene disabled.', error)
+        return
+      }
+
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
       const group = new THREE.Group()
 
       renderer.setClearAlpha(0)
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7))
       camera.position.set(0, 0, 8)
       scene.add(group)
 
-      const knotGeometry = new THREE.TorusKnotGeometry(1.16, 0.14, 132, 12)
+      const knotGeometry = new THREE.TorusKnotGeometry(1.16, 0.14, 96, 10)
       const knotMaterial = new THREE.MeshBasicMaterial({
-        color: palette.primary,
+        color: AMBIENT_PALETTES[activeSectionRef.current].primary,
         opacity: 0.18,
         transparent: true,
         wireframe: true,
@@ -1857,9 +1876,9 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
       knot.position.set(2.7, 1.05, 0)
       knot.rotation.set(0.55, 0.38, 0.08)
 
-      const ringGeometry = new THREE.TorusGeometry(2.05, 0.018, 10, 128)
+      const ringGeometry = new THREE.TorusGeometry(2.05, 0.018, 8, 96)
       const ringMaterial = new THREE.MeshBasicMaterial({
-        color: palette.secondary,
+        color: AMBIENT_PALETTES[activeSectionRef.current].secondary,
         opacity: 0.18,
         transparent: true,
       })
@@ -1881,7 +1900,7 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
       const pointGeometry = new THREE.BufferGeometry()
       const positions: number[] = []
 
-      for (let index = 0; index < 120; index += 1) {
+      for (let index = 0; index < 96; index += 1) {
         const angle = index * 0.38
         const radius = 2.2 + Math.sin(index * 0.37) * 0.55
         positions.push(
@@ -1907,9 +1926,19 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
 
       group.add(knot, ring, shard, points)
 
-      function resize() {
-        const { innerWidth, innerHeight } = window
+      function applyPalette(section: SectionKey) {
+        const palette = AMBIENT_PALETTES[section]
+        knotMaterial.color.set(palette.primary)
+        ringMaterial.color.set(palette.secondary)
+      }
 
+      sceneControllerRef.current = { applyPalette }
+
+      function resizeNow() {
+        const { innerWidth, innerHeight } = window
+        const maxPixelRatio = innerWidth < 760 ? 1.18 : 1.45
+
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxPixelRatio))
         renderer.setSize(innerWidth, innerHeight, false)
         camera.aspect = innerWidth / innerHeight
         camera.updateProjectionMatrix()
@@ -1917,8 +1946,16 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
 
       let frame = 0
       let raf = 0
+      let resizeRaf = 0
 
-      function render() {
+      function cancelRenderLoop() {
+        if (raf) {
+          window.cancelAnimationFrame(raf)
+          raf = 0
+        }
+      }
+
+      function renderFrame() {
         frame += 1
 
         if (!reduceMotion) {
@@ -1931,19 +1968,72 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
         }
 
         renderer.render(scene, camera)
-
-        if (!reduceMotion) {
-          raf = window.requestAnimationFrame(render)
-        }
       }
 
-      resize()
-      render()
+      function scheduleRender() {
+        if (reduceMotion || document.hidden || raf) {
+          return
+        }
+
+        raf = window.requestAnimationFrame(() => {
+          raf = 0
+          renderFrame()
+          scheduleRender()
+        })
+      }
+
+      function resize() {
+        if (resizeRaf) {
+          return
+        }
+
+        resizeRaf = window.requestAnimationFrame(() => {
+          resizeRaf = 0
+          resizeNow()
+          renderFrame()
+        })
+      }
+
+      function handleVisibilityChange() {
+        if (document.hidden) {
+          cancelRenderLoop()
+          return
+        }
+
+        renderFrame()
+        scheduleRender()
+      }
+
+      function handleMotionChange(event: MediaQueryListEvent) {
+        reduceMotion = event.matches
+
+        if (reduceMotion) {
+          cancelRenderLoop()
+          renderFrame()
+          return
+        }
+
+        scheduleRender()
+      }
+
+      resizeNow()
+      renderFrame()
+      scheduleRender()
+      canvas.dataset.ready = 'true'
       window.addEventListener('resize', resize)
+      document.addEventListener('visibilitychange', handleVisibilityChange)
+      mediaQuery.addEventListener('change', handleMotionChange)
 
       cleanupScene = () => {
+        delete canvas.dataset.ready
+        sceneControllerRef.current = null
         window.removeEventListener('resize', resize)
-        window.cancelAnimationFrame(raf)
+        document.removeEventListener('visibilitychange', handleVisibilityChange)
+        mediaQuery.removeEventListener('change', handleMotionChange)
+        cancelRenderLoop()
+        if (resizeRaf) {
+          window.cancelAnimationFrame(resizeRaf)
+        }
         knotGeometry.dispose()
         ringGeometry.dispose()
         planeGeometry.dispose()
@@ -1960,7 +2050,7 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
       disposed = true
       cleanupScene?.()
     }
-  }, [activeSection])
+  }, [])
 
   return (
     <div className="ambient-scene" aria-hidden="true">
