@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
@@ -29,7 +29,7 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
-type ViewKey = 'discover' | 'compatible' | 'matches' | 'invites' | 'profile'
+type ViewKey = 'discover' | 'matches' | 'invites' | 'profile'
 type ProfileSource = 'remote'
 
 type SectionMeta = {
@@ -221,7 +221,6 @@ const SECTION_META: Record<SectionKey, SectionMeta> = {
 
 const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'discover', label: 'Scopri', Icon: Search },
-  { key: 'compatible', label: 'Compatibili', Icon: Sparkles },
   { key: 'matches', label: 'Match', Icon: Heart },
   { key: 'invites', label: 'Inviti', Icon: KeyRound },
   { key: 'profile', label: 'Profilo', Icon: User },
@@ -689,6 +688,8 @@ function App() {
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
   const [remoteLoading, setRemoteLoading] = useState(false)
+  const [showNightReminder, setShowNightReminder] = useState(false)
+  const nightReminderTimerRef = useRef<number | null>(null)
 
   const refreshRemoteData = useCallback(
     async (userId: string, viewerCity = ownProfile.city) => {
@@ -931,6 +932,14 @@ function App() {
     })
   }, [setLikedIds, setMatchedIds, setMessages, setPassedIds])
 
+  useEffect(() => {
+    return () => {
+      if (nightReminderTimerRef.current) {
+        window.clearTimeout(nightReminderTimerRef.current)
+      }
+    }
+  }, [])
+
   const allProfiles = remoteState.profiles
   const allProfileIds = useMemo(
     () => new Set(allProfiles.map((profile) => profile.id)),
@@ -1002,9 +1011,10 @@ function App() {
       ? remoteState.messages[selectedRemoteMatchId] ?? []
       : messages[selectedMatch.id] ?? []
     : []
-  const spotlightProfiles = (
-    activeView === 'compatible' ? compatibleProfiles : visibleProfiles
-  ).slice(0, 3)
+  const spotlightProfiles =
+    activeView === 'discover'
+      ? compatibleProfiles.slice(0, 3)
+      : visibleProfiles.slice(0, 3)
   const spotlightImages = spotlightProfiles.length
     ? spotlightProfiles.map((profile) => profile.image)
     : GROUP_IMAGE_POOL.slice(0, 3)
@@ -1013,10 +1023,6 @@ function App() {
     discover: {
       title: 'Persone per oggi',
       body: 'Pochi profili, contesto chiaro e motivi reali per iniziare una conversazione.',
-    },
-    compatible: {
-      title: 'Compatibili con te',
-      body: 'Ordinati per intenzione, interessi comuni, distanza e disponibilita.',
     },
     matches: {
       title: 'Match e conversazioni',
@@ -1210,7 +1216,25 @@ function App() {
     setCurrentUserId(null)
     setOnboardingUserId(null)
     setRemoteState(REMOTE_STATE_EMPTY)
+    setShowNightReminder(false)
     setLaunchOpen(false)
+  }
+
+  function showTemporaryNightReminder() {
+    if (nightAccepted) {
+      return
+    }
+
+    if (nightReminderTimerRef.current) {
+      window.clearTimeout(nightReminderTimerRef.current)
+    }
+
+    setShowNightReminder(true)
+    nightReminderTimerRef.current = window.setTimeout(() => {
+      setShowNightReminder(false)
+      setNightAccepted(true)
+      nightReminderTimerRef.current = null
+    }, 4200)
   }
 
   async function likeProfile(profile: Profile) {
@@ -1451,6 +1475,8 @@ function App() {
 
   return (
     <main className={`app-shell section-${activeSection}`}>
+      <AmbientScene activeSection={activeSection} />
+
       {notice && (
         <div className="notice" role="status">
           <span>{notice}</span>
@@ -1498,6 +1524,9 @@ function App() {
             onClick={() => {
               setActiveSection(key)
               setActiveView('discover')
+              if (key === 'night') {
+                showTemporaryNightReminder()
+              }
             }}
           >
             <Icon size={17} />
@@ -1600,7 +1629,7 @@ function App() {
             </div>
           </section>
 
-          {(activeView === 'discover' || activeView === 'compatible') && (
+          {activeView === 'discover' && (
             <>
               <div className="filters">
                 <label className="search-field">
@@ -1673,27 +1702,19 @@ function App() {
                 </label>
               </div>
 
-              {activeSection === 'night' && !nightAccepted ? (
-                <NightGate onAccept={() => setNightAccepted(true)} />
-              ) : (
-                <ProfileGrid
-                  profiles={
-                    activeView === 'compatible'
-                      ? compatibleProfiles
-                      : visibleProfiles
-                  }
-                  isLoading={remoteLoading}
-                  viewerProfile={ownProfile}
-                  activeSection={activeSection}
-                  likedIds={effectiveLikedIds}
-                  passedIds={passedIds}
-                  matchedIds={effectiveMatchedIds}
-                  onLike={likeProfile}
-                  onPass={passProfile}
-                  onOpenInvites={() => setActiveView('invites')}
-                  onOpenProfile={() => setActiveView('profile')}
-                />
-              )}
+              <ProfileGrid
+                profiles={compatibleProfiles}
+                isLoading={remoteLoading}
+                viewerProfile={ownProfile}
+                activeSection={activeSection}
+                likedIds={effectiveLikedIds}
+                passedIds={passedIds}
+                matchedIds={effectiveMatchedIds}
+                onLike={likeProfile}
+                onPass={passProfile}
+                onOpenInvites={() => setActiveView('invites')}
+                onOpenProfile={() => setActiveView('profile')}
+              />
             </>
           )}
 
@@ -1743,6 +1764,18 @@ function App() {
       />
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+      {showNightReminder && (
+        <NightReminder
+          onClose={() => {
+            if (nightReminderTimerRef.current) {
+              window.clearTimeout(nightReminderTimerRef.current)
+              nightReminderTimerRef.current = null
+            }
+            setShowNightReminder(false)
+            setNightAccepted(true)
+          }}
+        />
+      )}
     </main>
   )
 }
@@ -1770,6 +1803,169 @@ function PrimaryNav({
         </button>
       ))}
     </nav>
+  )
+}
+
+function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    let disposed = false
+    let cleanupScene: (() => void) | null = null
+
+    if (!canvas) {
+      return
+    }
+
+    void import('three').then((THREE) => {
+      if (disposed) {
+        return
+      }
+
+      const reduceMotion = window.matchMedia(
+        '(prefers-reduced-motion: reduce)',
+      ).matches
+      const palette = {
+        network: { primary: '#087e75', secondary: '#ff5348' },
+        relationship: { primary: '#d94f66', secondary: '#23d0b0' },
+        night: { primary: '#5c54d8', secondary: '#ff5348' },
+      }[activeSection]
+      const renderer = new THREE.WebGLRenderer({
+        alpha: true,
+        antialias: true,
+        canvas,
+        preserveDrawingBuffer: true,
+      })
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 100)
+      const group = new THREE.Group()
+
+      renderer.setClearAlpha(0)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7))
+      camera.position.set(0, 0, 8)
+      scene.add(group)
+
+      const knotGeometry = new THREE.TorusKnotGeometry(1.16, 0.14, 132, 12)
+      const knotMaterial = new THREE.MeshBasicMaterial({
+        color: palette.primary,
+        opacity: 0.18,
+        transparent: true,
+        wireframe: true,
+      })
+      const knot = new THREE.Mesh(knotGeometry, knotMaterial)
+      knot.position.set(2.7, 1.05, 0)
+      knot.rotation.set(0.55, 0.38, 0.08)
+
+      const ringGeometry = new THREE.TorusGeometry(2.05, 0.018, 10, 128)
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: palette.secondary,
+        opacity: 0.18,
+        transparent: true,
+      })
+      const ring = new THREE.Mesh(ringGeometry, ringMaterial)
+      ring.position.set(-2.8, -1.45, -0.8)
+      ring.rotation.set(1.22, 0.42, -0.28)
+
+      const planeGeometry = new THREE.IcosahedronGeometry(0.82, 1)
+      const planeMaterial = new THREE.MeshBasicMaterial({
+        color: '#172320',
+        opacity: 0.07,
+        transparent: true,
+        wireframe: true,
+      })
+      const shard = new THREE.Mesh(planeGeometry, planeMaterial)
+      shard.position.set(0.35, -0.08, -1.2)
+      shard.rotation.set(0.6, 0.4, 0.1)
+
+      const pointGeometry = new THREE.BufferGeometry()
+      const positions: number[] = []
+
+      for (let index = 0; index < 120; index += 1) {
+        const angle = index * 0.38
+        const radius = 2.2 + Math.sin(index * 0.37) * 0.55
+        positions.push(
+          Math.cos(angle) * radius,
+          Math.sin(angle * 0.82) * 1.15,
+          -1.6 + Math.sin(index * 0.19) * 0.6,
+        )
+      }
+
+      pointGeometry.setAttribute(
+        'position',
+        new THREE.Float32BufferAttribute(positions, 3),
+      )
+
+      const pointMaterial = new THREE.PointsMaterial({
+        color: '#172320',
+        opacity: 0.18,
+        size: 0.025,
+        transparent: true,
+      })
+      const points = new THREE.Points(pointGeometry, pointMaterial)
+      points.position.set(0.1, 0.05, -1.5)
+
+      group.add(knot, ring, shard, points)
+
+      function resize() {
+        const { innerWidth, innerHeight } = window
+
+        renderer.setSize(innerWidth, innerHeight, false)
+        camera.aspect = innerWidth / innerHeight
+        camera.updateProjectionMatrix()
+      }
+
+      let frame = 0
+      let raf = 0
+
+      function render() {
+        frame += 1
+
+        if (!reduceMotion) {
+          knot.rotation.x += 0.0026
+          knot.rotation.y += 0.0034
+          ring.rotation.z -= 0.0018
+          shard.rotation.x -= 0.0016
+          points.rotation.z += 0.0009
+          group.position.y = Math.sin(frame * 0.014) * 0.05
+        }
+
+        renderer.render(scene, camera)
+
+        if (!reduceMotion) {
+          raf = window.requestAnimationFrame(render)
+        }
+      }
+
+      resize()
+      render()
+      window.addEventListener('resize', resize)
+
+      cleanupScene = () => {
+        window.removeEventListener('resize', resize)
+        window.cancelAnimationFrame(raf)
+        knotGeometry.dispose()
+        ringGeometry.dispose()
+        planeGeometry.dispose()
+        pointGeometry.dispose()
+        knotMaterial.dispose()
+        ringMaterial.dispose()
+        planeMaterial.dispose()
+        pointMaterial.dispose()
+        renderer.dispose()
+      }
+    })
+
+    return () => {
+      disposed = true
+      cleanupScene?.()
+    }
+  }, [activeSection])
+
+  return (
+    <div className="ambient-scene" aria-hidden="true">
+      <canvas ref={canvasRef} />
+    </div>
   )
 }
 
@@ -2304,16 +2500,16 @@ function DisclaimerModal({ onAccept }: { onAccept: () => void }) {
         aria-modal="true"
         aria-labelledby="disclaimer-title"
       >
-        <div className="gate-icon" aria-hidden="true">
+        <div className="disclaimer-icon" aria-hidden="true">
           <ShieldCheck size={28} />
         </div>
         <div>
           <p className="eyebrow">Promemoria giornaliero</p>
-          <h2 id="disclaimer-title">Stai bene dentro CerchiaMi</h2>
+          <h2 id="disclaimer-title">Rispetto prima di tutto</h2>
           <p>
-            Usa l'app con rispetto. Evita pressioni, contenuti espliciti non
-            richiesti, nudi o clip video simili. Le conversazioni funzionano
-            meglio quando consenso e discrezione sono chiari.
+            Usa CerchiaMi con educazione e buon senso. Evita pressioni,
+            contenuti espliciti non richiesti, nudi o clip simili. Consenso,
+            rispetto e discrezione restano la base.
           </p>
         </div>
         <button type="button" className="primary-button" onClick={onAccept}>
@@ -2325,25 +2521,18 @@ function DisclaimerModal({ onAccept }: { onAccept: () => void }) {
   )
 }
 
-function NightGate({ onAccept }: { onAccept: () => void }) {
+function NightReminder({ onClose }: { onClose: () => void }) {
   return (
-    <section className="safety-gate">
-      <div className="gate-icon" aria-hidden="true">
-        <ShieldCheck size={30} />
-      </div>
+    <aside className="night-reminder" role="status">
+      <ShieldCheck size={18} />
       <div>
-        <p className="eyebrow">18+ · consenso</p>
-        <h3>Confini chiari prima del match</h3>
-        <p>
-          Questa sezione resta accessibile solo dopo conferma di maggiore eta,
-          consenso esplicito e rispetto dei limiti personali.
-        </p>
+        <strong>Reminder 18+</strong>
+        <span>Consenso, rispetto e limiti chiari.</span>
       </div>
-      <button type="button" className="primary-button" onClick={onAccept}>
-        <Check size={18} />
-        Confermo
+      <button type="button" onClick={onClose} aria-label="Chiudi reminder">
+        <X size={16} />
       </button>
-    </section>
+    </aside>
   )
 }
 

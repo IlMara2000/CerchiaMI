@@ -29,6 +29,25 @@
   animation: screen-rise var(--motion-slow) var(--ease-out) both;
 }
 
+.app-shell > :not(.ambient-scene) {
+  position: relative;
+  z-index: 1;
+}
+
+.ambient-scene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.66;
+}
+
+.ambient-scene canvas {
+  width: 100%;
+  height: 100%;
+}
+
 .app-stage {
   order: 5;
   animation: content-rise var(--motion-medium) var(--ease-out) both;
@@ -155,11 +174,10 @@ h3 {
 }
 
 .section-rail {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
-  overflow-x: auto;
   padding: 14px 2px 16px;
-  scrollbar-width: none;
 }
 
 .mood-chips {
@@ -176,7 +194,8 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
   padding: 0 15px;
   border: 1px solid rgba(20, 32, 31, 0.1);
   border-radius: var(--radius);
@@ -211,7 +230,7 @@ h3 {
   z-index: 11;
   display: grid;
   order: 3;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 14px;
   padding: 8px;
@@ -807,7 +826,6 @@ select:focus {
 }
 
 .empty-state,
-.safety-gate,
 .invite-manager,
 .profile-editor,
 .match-list,
@@ -860,24 +878,6 @@ select:focus {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-}
-
-.safety-gate {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: center;
-  padding: 22px;
-}
-
-.gate-icon {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  border-radius: var(--radius);
-  color: #5c54d8;
-  background: #f0edff;
 }
 
 .match-board {
@@ -1141,7 +1141,7 @@ select:focus {
   display: none;
   order: 3;
   width: calc(100% - 16px);
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
   margin: 0 auto;
   padding: 7px;
@@ -1507,6 +1507,65 @@ select:focus {
   justify-self: start;
 }
 
+.night-reminder {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 24;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: min(380px, calc(100vw - 36px));
+  padding: 12px;
+  border: 1px solid rgba(92, 84, 216, 0.16);
+  border-radius: var(--radius);
+  color: #172320;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 18px 48px rgba(20, 32, 31, 0.14);
+  backdrop-filter: blur(18px);
+  animation: toast-up 320ms var(--ease-out) both;
+}
+
+.night-reminder > svg {
+  color: #5c54d8;
+}
+
+.night-reminder strong,
+.night-reminder span {
+  display: block;
+}
+
+.night-reminder strong {
+  font-size: 0.9rem;
+}
+
+.night-reminder span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.3;
+}
+
+.night-reminder button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--muted);
+  background: #f4f7f6;
+}
+
+.disclaimer-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: var(--radius);
+  color: #5c54d8;
+  background: #f0edff;
+}
+
 @keyframes step-in {
   from {
     opacity: 0;
@@ -1633,6 +1692,18 @@ select:focus {
   }
 }
 
+@keyframes toast-up {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @media (max-width: 1100px) {
   .daily-hero {
     grid-template-columns: minmax(0, 1fr) 190px;
@@ -1673,38 +1744,46 @@ select:focus {
     display: grid;
   }
 
+  .night-reminder {
+    right: 10px;
+    bottom: 92px;
+    left: 10px;
+    width: auto;
+  }
+
   .app-topbar {
     position: static;
-    display: grid;
-    grid-template-columns: 42px minmax(0, 1fr) 42px;
-    gap: 6px;
-    padding: 18px 0 10px;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
-    backdrop-filter: none;
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 0 0 var(--radius) var(--radius);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 28px rgba(20, 32, 31, 0.06);
+    backdrop-filter: blur(18px);
   }
 
   .brand-mark {
-    display: none;
+    display: inline-grid;
+    width: 40px;
+    height: 40px;
   }
 
   .brand-block {
-    grid-column: 2;
-    justify-content: center;
-    text-align: center;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .brand-block h1 {
-    font-size: clamp(2.1rem, 10vw, 3.1rem);
+    font-size: 1.32rem;
   }
 
   .brand-block p {
-    display: none;
+    display: block;
+    font-size: 0.83rem;
   }
 
   .topbar-actions {
-    grid-column: 3;
+    margin-left: auto;
     justify-content: end;
   }
 
@@ -1713,15 +1792,22 @@ select:focus {
   }
 
   .section-rail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
     padding-block: 0 10px;
   }
 
   .section-rail button {
     min-height: 46px;
-    padding: 0 16px;
+    width: 100%;
+    padding: 0 6px;
     border-color: rgba(20, 32, 31, 0.09);
     background: #ffffff;
-    font-size: 0.92rem;
+    font-size: 0.82rem;
+    gap: 5px;
+    white-space: nowrap;
     box-shadow: 0 8px 18px rgba(20, 32, 31, 0.05);
   }
 
@@ -1780,7 +1866,6 @@ select:focus {
 
   .profile-grid,
   .form-grid,
-  .safety-gate,
   .auth-shell {
     grid-template-columns: 1fr;
   }
