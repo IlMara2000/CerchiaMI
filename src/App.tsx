@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
-  AtSign,
   BadgeCheck,
   Calendar,
   Check,
@@ -193,6 +192,8 @@ type RemoteState = {
 
 const PROFILE_SELECT =
   'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility'
+
+const BRAND_MARK_SRC = '/favicon.svg?v=20260516'
 
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
@@ -1497,9 +1498,7 @@ function App() {
 
       <header className="app-topbar">
         <div className="brand-block">
-          <div className="brand-mark" aria-hidden="true">
-            <Users size={21} />
-          </div>
+          <BrandMark className="brand-mark" />
           <div>
             <h1 className="wordmark">
               <span>Cerchia</span>
@@ -1789,6 +1788,14 @@ function App() {
   )
 }
 
+function BrandMark({ className }: { className: string }) {
+  return (
+    <span className={className} aria-hidden="true">
+      <img src={BRAND_MARK_SRC} alt="" />
+    </span>
+  )
+}
+
 function PrimaryNav({
   activeView,
   setActiveView,
@@ -2064,9 +2071,7 @@ function LaunchScreen({ onStart }: { onStart: () => void }) {
     <main className="launch-shell">
       <h1 className="sr-only">CerchiaMi</h1>
       <button type="button" className="launch-button" onClick={onStart}>
-        <span className="launch-logo" aria-hidden="true">
-          <Users size={34} />
-        </span>
+        <BrandMark className="launch-logo" />
         <span className="launch-wordmark">
           <span>Cerchia</span>
           <span>Mi</span>
@@ -2113,9 +2118,7 @@ function EmailAccess({
     <main className="auth-shell">
       <section className="auth-panel" aria-labelledby="auth-title">
         <div className="auth-brand">
-          <div className="brand-mark" aria-hidden="true">
-            <AtSign size={22} />
-          </div>
+          <BrandMark className="brand-mark" />
           <div>
             <p className="eyebrow">Accesso riservato</p>
             <h1 id="auth-title" className="wordmark">
