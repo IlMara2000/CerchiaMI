@@ -71,6 +71,49 @@ create table if not exists public.messages (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.legal_acceptances (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  document_version text not null,
+  accepted_context text not null default 'auth',
+  user_agent text,
+  accepted_at timestamptz not null default now(),
+  unique (user_id, document_version, accepted_context)
+);
+
+create table if not exists public.user_blocks (
+  id uuid primary key default gen_random_uuid(),
+  blocker_profile uuid not null references public.profiles(id) on delete cascade,
+  blocked_profile uuid not null references public.profiles(id) on delete cascade,
+  reason text,
+  created_at timestamptz not null default now(),
+  unique (blocker_profile, blocked_profile),
+  check (blocker_profile <> blocked_profile)
+);
+
+create table if not exists public.user_reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_profile uuid references public.profiles(id) on delete set null,
+  reported_profile uuid references public.profiles(id) on delete set null,
+  category text not null default 'altro'
+    check (category in ('molestia', 'esplicito', 'fake', 'sicurezza', 'altro')),
+  details text check (details is null or char_length(details) <= 2000),
+  status text not null default 'open'
+    check (status in ('open', 'reviewing', 'closed')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.account_deletion_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete set null,
+  email text,
+  reason text not null default 'self_service',
+  status text not null default 'open'
+    check (status in ('open', 'processing', 'completed', 'rejected')),
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
+);
+
 insert into public.invites (code, purpose)
 values
   ('CERCHIAMI-2026', 'Codice iniziale CerchiaMi'),
@@ -83,12 +126,40 @@ alter table public.invites enable row level security;
 alter table public.likes enable row level security;
 alter table public.matches enable row level security;
 alter table public.messages enable row level security;
+alter table public.legal_acceptances enable row level security;
+alter table public.user_blocks enable row level security;
+alter table public.user_reports enable row level security;
+alter table public.account_deletion_requests enable row level security;
+
+grant select, insert, update, delete on public.profiles to authenticated;
+grant select, insert, update, delete on public.invites to authenticated;
+grant select, insert, update, delete on public.likes to authenticated;
+grant select, insert, update, delete on public.matches to authenticated;
+grant select, insert, update, delete on public.messages to authenticated;
+grant select, insert, update on public.legal_acceptances to authenticated;
+grant select, insert, delete on public.user_blocks to authenticated;
+grant select, insert on public.user_reports to authenticated;
+grant select, insert on public.account_deletion_requests to authenticated;
 
 drop policy if exists "profiles_select_authenticated" on public.profiles;
 create policy "profiles_select_authenticated"
   on public.profiles for select
   to authenticated
-  using (true);
+  using (
+    id = auth.uid()
+    or not exists (
+      select 1
+      from public.user_blocks
+      where (
+        user_blocks.blocker_profile = auth.uid()
+        and user_blocks.blocked_profile = profiles.id
+      )
+      or (
+        user_blocks.blocker_profile = profiles.id
+        and user_blocks.blocked_profile = auth.uid()
+      )
+    )
+  );
 
 drop policy if exists "profiles_insert_own" on public.profiles;
 create policy "profiles_insert_own"
@@ -102,6 +173,12 @@ create policy "profiles_update_own"
   to authenticated
   using (id = auth.uid())
   with check (id = auth.uid());
+
+drop policy if exists "profiles_delete_own" on public.profiles;
+create policy "profiles_delete_own"
+  on public.profiles for delete
+  to authenticated
+  using (id = auth.uid());
 
 drop policy if exists "invites_select_authenticated" on public.invites;
 create policy "invites_select_authenticated"
@@ -132,6 +209,12 @@ create policy "invites_claim_available"
     created_by = auth.uid()
     or used_by = auth.uid()
   );
+
+drop policy if exists "invites_delete_own" on public.invites;
+create policy "invites_delete_own"
+  on public.invites for delete
+  to authenticated
+  using (created_by = auth.uid());
 
 drop policy if exists "likes_select_involved" on public.likes;
 create policy "likes_select_involved"
@@ -184,6 +267,67 @@ create policy "messages_insert_match_members"
     )
   );
 
+drop policy if exists "legal_acceptances_select_own" on public.legal_acceptances;
+create policy "legal_acceptances_select_own"
+  on public.legal_acceptances for select
+  to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "legal_acceptances_insert_own" on public.legal_acceptances;
+create policy "legal_acceptances_insert_own"
+  on public.legal_acceptances for insert
+  to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists "legal_acceptances_update_own" on public.legal_acceptances;
+create policy "legal_acceptances_update_own"
+  on public.legal_acceptances for update
+  to authenticated
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
+
+drop policy if exists "user_blocks_select_own" on public.user_blocks;
+create policy "user_blocks_select_own"
+  on public.user_blocks for select
+  to authenticated
+  using (blocker_profile = auth.uid());
+
+drop policy if exists "user_blocks_insert_own" on public.user_blocks;
+create policy "user_blocks_insert_own"
+  on public.user_blocks for insert
+  to authenticated
+  with check (blocker_profile = auth.uid());
+
+drop policy if exists "user_blocks_delete_own" on public.user_blocks;
+create policy "user_blocks_delete_own"
+  on public.user_blocks for delete
+  to authenticated
+  using (blocker_profile = auth.uid());
+
+drop policy if exists "user_reports_select_own" on public.user_reports;
+create policy "user_reports_select_own"
+  on public.user_reports for select
+  to authenticated
+  using (reporter_profile = auth.uid());
+
+drop policy if exists "user_reports_insert_own" on public.user_reports;
+create policy "user_reports_insert_own"
+  on public.user_reports for insert
+  to authenticated
+  with check (reporter_profile = auth.uid());
+
+drop policy if exists "account_deletion_requests_select_own" on public.account_deletion_requests;
+create policy "account_deletion_requests_select_own"
+  on public.account_deletion_requests for select
+  to authenticated
+  using (user_id = auth.uid());
+
+drop policy if exists "account_deletion_requests_insert_own" on public.account_deletion_requests;
+create policy "account_deletion_requests_insert_own"
+  on public.account_deletion_requests for insert
+  to authenticated
+  with check (user_id = auth.uid());
+
 create or replace function public.like_profile(
   target_profile uuid,
   target_section text
@@ -209,6 +353,21 @@ begin
 
   if target_section not in ('network', 'relationship', 'night') then
     raise exception 'Invalid section';
+  end if;
+
+  if exists (
+    select 1
+    from public.user_blocks
+    where (
+      blocker_profile = current_profile
+      and blocked_profile = target_profile
+    )
+    or (
+      blocker_profile = target_profile
+      and blocked_profile = current_profile
+    )
+  ) then
+    raise exception 'Profile unavailable';
   end if;
 
   insert into public.likes (from_profile, to_profile, section)

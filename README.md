@@ -43,6 +43,9 @@ email.
 - Creazione e copia di nuovi codici invito.
 - Profilo personale modificabile.
 - Sincronizzazione Supabase per profili, inviti, like, match e messaggi.
+- Pagine pubbliche `/terms`, `/privacy`, `/cookie`, `/safety`.
+- Salvataggio versione consenso legale, blocco utenti, segnalazioni e richiesta
+  cancellazione account tramite Supabase.
 
 ## Supabase
 
@@ -61,7 +64,12 @@ Per preparare il backend:
 ```bash
 VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SERVICE_ROLE_KEY
 ```
 
 Con queste variabili presenti al momento della build, Vercel genera una versione
 online collegata a Supabase.
+
+`SUPABASE_SERVICE_ROLE_KEY` deve stare solo in Vercel/server: serve alla funzione
+`/api/delete-account` per eliminare definitivamente l'utente Supabase Auth. Non
+va mai esposta nel client o in variabili `VITE_`.

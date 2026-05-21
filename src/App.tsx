@@ -3,10 +3,12 @@ import type { CSSProperties, Dispatch, FormEvent, SetStateAction } from 'react'
 import type { LucideIcon } from 'lucide-react'
 import {
   BadgeCheck,
+  Ban,
   Calendar,
   Check,
   Clock,
   Copy,
+  Flag,
   Flame,
   Heart,
   KeyRound,
@@ -20,6 +22,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Trash2,
   User,
   Users,
   X,
@@ -29,6 +32,7 @@ import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
 type ViewKey = 'discover' | 'matches' | 'invites' | 'profile' | 'legal'
+type PublicLegalKey = 'terms' | 'privacy' | 'cookie' | 'safety'
 type ProfileSource = 'remote'
 
 type SectionMeta = {
@@ -45,6 +49,16 @@ type LegalSection = {
   Icon: LucideIcon
   summary: string
   items: string[]
+}
+
+type PublicLegalPage = {
+  key: PublicLegalKey
+  path: string
+  navLabel: string
+  title: string
+  summary: string
+  Icon: LucideIcon
+  sections: { title: string; body: string[] }[]
 }
 
 type Profile = {
@@ -193,9 +207,14 @@ type RemoteState = {
   profiles: Profile[]
   likedIds: string[]
   matchedIds: string[]
+  blockedIds: string[]
   invites: Invite[]
   messages: Record<string, Message[]>
   matchByProfileId: Record<string, string>
+}
+
+type RemoteBlockRow = {
+  blocked_profile: string
 }
 
 const PROFILE_SELECT =
@@ -203,20 +222,21 @@ const PROFILE_SELECT =
 
 const BRAND_MARK_SRC = '/favicon.svg?v=20260516'
 const LEGAL_UPDATED_AT = '21 maggio 2026'
+const LEGAL_DOCUMENT_VERSION = 'cerchiami-legal-2026-05-21'
 
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
     key: 'network',
-    label: 'Scopri',
-    title: 'Persone compatibili, non swipe infiniti',
+    label: 'Amicizia',
+    title: 'Nuove amicizie senza pressione',
     detail:
-      'Schede essenziali con intenzione, compatibilita e un primo aggancio reale.',
+      'Persone vicine, interessi in comune e un primo aggancio semplice.',
     Icon: Users,
   },
   relationship: {
     key: 'relationship',
-    label: 'Stabile',
-    title: 'Relazioni con direzione chiara',
+    label: 'Relazione',
+    title: 'Relazioni con intenzioni chiare',
     detail: 'Meno ambiguita, piu contesto e tempi realistici prima di scriversi.',
     Icon: Heart,
   },
@@ -243,7 +263,7 @@ const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'matches', label: 'Match', Icon: Heart },
   { key: 'invites', label: 'Inviti', Icon: KeyRound },
   { key: 'profile', label: 'Profilo', Icon: User },
-  { key: 'legal', label: 'Legale', Icon: ShieldCheck },
+  { key: 'legal', label: 'Termini e privacy', Icon: ShieldCheck },
 ]
 
 const RELATIONSHIP_GOALS = [
@@ -267,7 +287,7 @@ const LEGAL_SECTIONS: LegalSection[] = [
       "L'account e personale: non cedere login, codici invito o identita ad altre persone.",
       'Sono vietati molestie, minacce, contenuti illegali, spam, truffe, profili falsi e pressioni sessuali o emotive.',
       'CerchiaMi puo limitare o sospendere account e contenuti quando serve a proteggere utenti, servizio o obblighi di legge.',
-      'Le funzionalita possono cambiare nel tempo; eventuali servizi a pagamento dovranno avere prezzi, recesso e condizioni dedicate prima del lancio.',
+      "Le funzionalita possono cambiare nel tempo; eventuali servizi a pagamento avranno prezzi e condizioni dedicate prima dell'attivazione.",
     ],
   },
   {
@@ -275,13 +295,12 @@ const LEGAL_SECTIONS: LegalSection[] = [
     title: 'Dati personali',
     Icon: Lock,
     summary:
-      "Questa e una bozza chiara dell'informativa: prima del lancio pubblico va completata con dati reali del titolare e contatti privacy.",
+      'CerchiaMi usa solo i dati necessari per far funzionare profilo, inviti, match, sicurezza e preferenze.',
     items: [
-      'Titolare da completare: Daniele Marangoni, CerchiaMi o la societa/partita IVA che deciderai di usare.',
       'Dati trattati: email, profilo, eta, citta, interessi, preferenze, sezioni scelte, match, messaggi, inviti, log tecnici, indirizzo IP e consensi.',
       'Finalita: creare account, mostrare profili compatibili, gestire inviti e chat, prevenire abusi, mantenere sicurezza e rispettare obblighi legali.',
-      'Alcune informazioni in una dating app possono diventare delicate: orientamento, preferenze o contenuti intimi richiedono minimizzazione, consenso esplicito e protezioni forti.',
-      'Diritti utente: accesso, rettifica, cancellazione, portabilita, limitazione, opposizione, revoca del consenso e reclamo al Garante Privacy.',
+      'I dati personali non vanno condivisi con leggerezza: scegli sempre cosa mostrare e cosa tenere privato.',
+      'Puoi chiedere accesso, rettifica, cancellazione, portabilita, limitazione, opposizione e revoca dei consensi quando applicabile.',
     ],
   },
   {
@@ -289,11 +308,11 @@ const LEGAL_SECTIONS: LegalSection[] = [
     title: 'Regole community',
     Icon: ShieldCheck,
     summary:
-      'La sicurezza deve essere visibile dentro il prodotto, non nascosta in fondo a un documento legale.',
+      'Ogni persona deve sentirsi libera di parlare, bloccare, segnalare o fermarsi quando vuole.',
     items: [
       'No nudi, clip esplicite o messaggi sessuali non richiesti. Il consenso deve essere chiaro, libero e revocabile.',
       'Non condividere dati sensibili di altre persone, screenshot privati, indirizzi, documenti o conversazioni senza permesso.',
-      'Prima del lancio pubblico servono segnalazione, blocco utente, revisione manuale e una procedura per rispondere rapidamente agli abusi.',
+      'Usa blocco e segnalazione quando qualcosa non ti torna o ti mette a disagio.',
       'CerchiaMi non e un servizio di emergenza: se qualcuno e in pericolo reale bisogna contattare subito autorita o soccorsi.',
       'La sezione 18+ resta accessibile solo a maggiorenni e con reminder leggero di rispetto e limiti.',
     ],
@@ -303,27 +322,130 @@ const LEGAL_SECTIONS: LegalSection[] = [
     title: 'Cookie e strumenti tecnici',
     Icon: Sparkles,
     summary:
-      "Per ora l'app usa storage tecnico per login, preferenze e disclaimer. Analytics e advertising richiedono una gestione separata.",
+      "L'app usa strumenti tecnici per ricordare sessione, preferenze e conferme essenziali.",
     items: [
       'Cookie/local storage tecnici possono servire per sessione, sicurezza, lingua, preferenze e consenso giornaliero.',
-      'Se aggiungi analytics, pixel, advertising, mappe o video esterni, devi indicarlo e chiedere consenso prima del tracciamento non tecnico.',
-      'La privacy/cookie policy deve essere raggiungibile con un click anche dalle pagine pubbliche.',
-      'Devi registrare i consensi in modo dimostrabile e consentire la revoca con la stessa facilita con cui vengono dati.',
+      'Eventuali strumenti non tecnici, come analytics o advertising, richiedono informazione chiara e consenso quando previsto.',
+      'Le pagine Termini, Privacy, Cookie e Sicurezza restano sempre raggiungibili dalla sezione dedicata.',
+      'I consensi importanti vengono registrati per dimostrare quando sono stati accettati.',
     ],
   },
 ]
 
-const OFFICIAL_CHECKLIST = [
-  'Decidi il titolare ufficiale: persona fisica, ditta individuale o societa. I documenti legali devono riportare quel soggetto.',
-  'Compra e gestisci il dominio ufficiale, email dedicate tipo privacy@cerchiami.it e abuse@cerchiami.it, e account GitHub/Vercel/Supabase intestati correttamente.',
-  'Completa Termini, Privacy Policy, Cookie Policy e Regole Community con dati fiscali, contatti, responsabili, tempi di conservazione e base giuridica.',
-  "Firma o accetta i Data Processing Addendum con fornitori come Supabase e Vercel, poi conserva l'elenco dei responsabili del trattamento.",
-  'Versiona accettazioni, consensi, disclaimer, update privacy e modifiche sostanziali ai termini.',
-  'Attiva cancellazione account, esportazione dati, segnalazione contenuti, blocco utenti, audit log e policy di retention.',
-  'Valuta con un consulente privacy una DPIA prima di scalare: una dating app puo trattare dati molto personali e messaggi privati.',
-  'Registra marchio/nome se vuoi proteggerlo, chiarisci proprieta del codice, licenze immagini, librerie open source e asset grafici.',
-  'Se aggiungi pagamenti, prepara condizioni economiche, fatture, diritto di recesso quando applicabile, assistenza e gestione reclami.',
-]
+const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
+  terms: {
+    key: 'terms',
+    path: '/terms',
+    navLabel: 'Termini',
+    title: 'Termini e condizioni',
+    summary:
+      'Le regole base per usare CerchiaMi: account personale, maggiore eta, rispetto e servizio su invito.',
+    Icon: BadgeCheck,
+    sections: [
+      {
+        title: 'Uso del servizio',
+        body: [
+          'CerchiaMi e un servizio privato su invito per conoscere persone in modo chiaro e rispettoso.',
+          "L'app e riservata a persone maggiorenni. I dati inseriti devono essere corretti e riferiti a te.",
+          'Non puoi usare CerchiaMi per spam, truffe, molestie, contenuti illegali, profili falsi o pressioni verso altri utenti.',
+        ],
+      },
+      {
+        title: 'Account, sospensioni e responsabilita',
+        body: [
+          'Il tuo account e personale: non condividere credenziali o codici invito con persone non autorizzate.',
+          'CerchiaMi puo limitare, sospendere o rimuovere profili e contenuti quando serva a proteggere utenti, servizio o obblighi legali.',
+          'Eventuali funzionalita a pagamento richiederanno condizioni economiche dedicate prima di essere attivate.',
+        ],
+      },
+    ],
+  },
+  privacy: {
+    key: 'privacy',
+    path: '/privacy',
+    navLabel: 'Privacy',
+    title: 'Privacy policy',
+    summary:
+      'Informazioni chiare su dati raccolti, finalita, diritti utente e fornitori tecnici.',
+    Icon: Lock,
+    sections: [
+      {
+        title: 'Dati e finalita',
+        body: [
+          'CerchiaMi tratta email, profilo, eta, citta, interessi, preferenze, sezioni, match, messaggi, inviti, log tecnici e consensi.',
+          'I dati servono per creare account, mostrare profili compatibili, gestire chat e inviti, prevenire abusi e rispettare obblighi legali.',
+          'Alcune informazioni in una dating app possono essere delicate: vanno raccolte solo se necessarie e protette con attenzione.',
+        ],
+      },
+      {
+        title: 'Diritti e contatti',
+        body: [
+          'Puoi chiedere accesso, rettifica, cancellazione, portabilita, limitazione, opposizione e revoca del consenso.',
+          'Le richieste privacy vengono gestite tramite i canali indicati dal servizio e secondo i tempi previsti dalla normativa.',
+          'Fornitori tecnici come Supabase e Vercel vanno indicati come responsabili/sub-responsabili quando trattano dati per il servizio.',
+        ],
+      },
+    ],
+  },
+  cookie: {
+    key: 'cookie',
+    path: '/cookie',
+    navLabel: 'Cookie',
+    title: 'Cookie policy',
+    summary:
+      'CerchiaMi usa strumenti tecnici per login, preferenze e sicurezza. Marketing e analytics richiedono consenso separato.',
+    Icon: Sparkles,
+    sections: [
+      {
+        title: 'Strumenti tecnici',
+        body: [
+          'Local storage e cookie tecnici possono servire per sessione, preferenze, disclaimer giornaliero, sicurezza e funzionamento app.',
+          'Questi strumenti non sono pensati per profilazione commerciale e sono necessari alla normale esperienza utente.',
+        ],
+      },
+      {
+        title: 'Consensi non tecnici',
+        body: [
+          'Se aggiungi analytics, advertising, pixel, video esterni o mappe traccianti, serve informativa specifica e consenso prima del tracciamento.',
+          "L'utente deve poter revocare il consenso con la stessa facilita con cui lo ha dato.",
+        ],
+      },
+    ],
+  },
+  safety: {
+    key: 'safety',
+    path: '/safety',
+    navLabel: 'Sicurezza',
+    title: 'Sicurezza e community',
+    summary:
+      'Regole semplici per consenso, segnalazioni, blocchi e comportamento rispettoso.',
+    Icon: ShieldCheck,
+    sections: [
+      {
+        title: 'Comportamento',
+        body: [
+          'No molestie, minacce, pressioni, contenuti espliciti non richiesti, nudi o clip simili senza consenso.',
+          'Non condividere screenshot, conversazioni, documenti, indirizzi o informazioni private di altre persone senza permesso.',
+          'Il consenso deve essere chiaro, libero e revocabile in ogni momento.',
+        ],
+      },
+      {
+        title: 'Strumenti di protezione',
+        body: [
+          'Gli utenti devono poter segnalare, bloccare e chiedere cancellazione dati/account.',
+          'CerchiaMi non e un servizio di emergenza: in caso di pericolo reale bisogna contattare subito autorita o soccorsi.',
+        ],
+      },
+    ],
+  },
+}
+
+const PUBLIC_LEGAL_PATHS = Object.values(PUBLIC_LEGAL_PAGES).reduce<
+  Record<string, PublicLegalKey>
+>((paths, page) => {
+  paths[page.path] = page.key
+  return paths
+}, {})
 
 const GROUP_IMAGES = {
   rooftop:
@@ -375,6 +497,7 @@ const REMOTE_STATE_EMPTY: RemoteState = {
   profiles: [],
   likedIds: [],
   matchedIds: [],
+  blockedIds: [],
   invites: [],
   messages: {},
   matchByProfileId: {},
@@ -384,8 +507,10 @@ const STORAGE = {
   session: 'cerchiami.session',
   profile: 'cerchiami.profile',
   invites: 'cerchiami.invites',
+  hiddenInvites: 'cerchiami.hiddenInvites',
   likes: 'cerchiami.likes',
   passes: 'cerchiami.passes',
+  blocks: 'cerchiami.blocks',
   matches: 'cerchiami.matches',
   messages: 'cerchiami.messages',
   nightAccepted: 'cerchiami.nightAccepted',
@@ -581,6 +706,11 @@ function parseInterests(value: string) {
     .slice(0, 8)
 }
 
+function currentPublicLegalPage() {
+  const normalizedPath = window.location.pathname.replace(/\/$/, '') || '/'
+  return PUBLIC_LEGAL_PATHS[normalizedPath]
+}
+
 function relationshipGoalLabel(value: string) {
   return (
     RELATIONSHIP_GOALS.find((goal) => goal.value === value)?.label ??
@@ -739,8 +869,16 @@ function App() {
     EMPTY_PROFILE,
   )
   const [invites, setInvites] = useStoredState<Invite[]>(STORAGE.invites, [])
+  const [hiddenInviteCodes, setHiddenInviteCodes] = useStoredState<string[]>(
+    STORAGE.hiddenInvites,
+    [],
+  )
   const [likedIds, setLikedIds] = useStoredState<string[]>(STORAGE.likes, [])
   const [passedIds, setPassedIds] = useStoredState<string[]>(STORAGE.passes, [])
+  const [blockedIds, setBlockedIds] = useStoredState<string[]>(
+    STORAGE.blocks,
+    [],
+  )
   const [matchedIds, setMatchedIds] = useStoredState<string[]>(
     STORAGE.matches,
     [],
@@ -767,13 +905,15 @@ function App() {
   const [maxDistance, setMaxDistance] = useState(25)
   const [minAge, setMinAge] = useState(24)
   const [maxAge, setMaxAge] = useState(45)
-  const [intentFilter, setIntentFilter] = useState('all')
-  const [availableOnly, setAvailableOnly] = useState(false)
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null)
   const [draftMessage, setDraftMessage] = useState('')
+  const [reportTarget, setReportTarget] = useState<Profile | null>(null)
+  const [reportCategory, setReportCategory] = useState('molestia')
+  const [reportDetails, setReportDetails] = useState('')
   const [notice, setNotice] = useState('')
   const [invitePurpose, setInvitePurpose] = useState('Nuovo invito privato')
   const [profileSaving, setProfileSaving] = useState(false)
+  const [accountDeleting, setAccountDeleting] = useState(false)
   const [disclaimerKey, setDisclaimerKey] = useState('')
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [launchOpen, setLaunchOpen] = useState(false)
@@ -859,6 +999,25 @@ function App() {
             usedBy: invite.used_by,
           }),
         )
+        let remoteBlockedIds: string[] = []
+
+        try {
+          const blocksResult = await supabase
+            .from('user_blocks')
+            .select('blocked_profile')
+            .eq('blocker_profile', userId)
+
+          if (blocksResult.error) {
+            throw blocksResult.error
+          }
+
+          remoteBlockedIds = ((blocksResult.data ?? []) as RemoteBlockRow[]).map(
+            (block) => block.blocked_profile,
+          )
+        } catch (error) {
+          console.warn('Supabase safety tables unavailable.', error)
+        }
+
         const matchIds = matchRows.map((match) => match.id)
         const messageMap: Record<string, Message[]> = {}
 
@@ -892,6 +1051,7 @@ function App() {
           profiles: remoteProfiles,
           likedIds: savedLikedIds,
           matchedIds: Object.keys(matchByProfileId),
+          blockedIds: remoteBlockedIds,
           invites: remoteInvites,
           messages: messageMap,
           matchByProfileId,
@@ -1010,6 +1170,7 @@ function App() {
 
     setLikedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
     setPassedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
+    setBlockedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
     setMatchedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
     setMessages((current) => {
       const nextMessages = { ...current }
@@ -1020,7 +1181,7 @@ function App() {
 
       return nextMessages
     })
-  }, [setLikedIds, setMatchedIds, setMessages, setPassedIds])
+  }, [setBlockedIds, setLikedIds, setMatchedIds, setMessages, setPassedIds])
 
   useEffect(() => {
     return () => {
@@ -1042,33 +1203,36 @@ function App() {
     ...matchedIds,
     ...remoteState.matchedIds,
   ]).filter((id) => allProfileIds.has(id))
+  const effectiveBlockedIds = unique([
+    ...blockedIds,
+    ...remoteState.blockedIds,
+  ]).filter((id) => allProfileIds.has(id))
   const visibleProfiles = useMemo(
     () =>
       allProfiles.filter((profile) => {
+        if (effectiveBlockedIds.includes(profile.id)) {
+          return false
+        }
+
         const matchesSection = profile.sections.includes(activeSection)
         const matchesQuery =
           !query.trim() ||
           `${profile.name} ${profile.city} ${profile.role} ${profile.bio} ${profile.tags.join(' ')} ${profile.values.join(' ')} ${profile.dateIdea}`
             .toLowerCase()
             .includes(query.toLowerCase())
-        const matchesIntent =
-          intentFilter === 'all' || profile.relationshipGoal === intentFilter
 
         return (
           matchesSection &&
           matchesQuery &&
-          matchesIntent &&
           profile.age >= minAge &&
           profile.age <= maxAge &&
-          profile.distance <= maxDistance &&
-          (!availableOnly || profile.availableToday)
+          profile.distance <= maxDistance
         )
       }),
     [
       activeSection,
       allProfiles,
-      availableOnly,
-      intentFilter,
+      effectiveBlockedIds,
       maxAge,
       maxDistance,
       minAge,
@@ -1084,11 +1248,16 @@ function App() {
       ),
     [activeSection, ownProfile, visibleProfiles],
   )
-  const matchProfiles = allProfiles.filter(
-    (profile) =>
+  const matchProfiles = allProfiles.filter((profile) => {
+    if (effectiveBlockedIds.includes(profile.id)) {
+      return false
+    }
+
+    return (
       effectiveMatchedIds.includes(profile.id) ||
-      (effectiveLikedIds.includes(profile.id) && profile.likedYou),
-  )
+      (effectiveLikedIds.includes(profile.id) && profile.likedYou)
+    )
+  })
   const selectedMatch =
     matchProfiles.find((profile) => profile.id === selectedMatchId) ??
     matchProfiles[0] ??
@@ -1101,37 +1270,64 @@ function App() {
       ? remoteState.messages[selectedRemoteMatchId] ?? []
       : messages[selectedMatch.id] ?? []
     : []
-  const spotlightProfiles =
-    activeView === 'discover'
-      ? compatibleProfiles.slice(0, 3)
-      : visibleProfiles.slice(0, 3)
-  const spotlightImages = activeView === 'legal'
-    ? [GROUP_IMAGES.parkWalk, GROUP_IMAGES.rooftop, GROUP_IMAGES.celebration]
-    : spotlightProfiles.length
-    ? spotlightProfiles.map((profile) => profile.image)
-    : GROUP_IMAGE_POOL.slice(0, 3)
   const topSuggestion = compatibleProfiles[0] ?? visibleProfiles[0] ?? null
-  const screenCopy: Record<ViewKey, { title: string; body: string }> = {
-    discover: {
-      title: 'Persone per oggi',
-      body: 'Pochi profili, contesto chiaro e motivi reali per iniziare una conversazione.',
+  const discoverCopy: Record<SectionKey, { title: string; body: string }> = {
+    network: {
+      title: 'Amicizie per oggi',
+      body: 'Trova persone vicine con cui condividere uscite, interessi e momenti leggeri.',
     },
+    relationship: {
+      title: 'Relazioni compatibili',
+      body: 'Conosci persone che cercano qualcosa di chiaro, stabile e senza giochi inutili.',
+    },
+    night: {
+      title: 'Chimica 18+',
+      body: 'Uno spazio adulto, diretto e rispettoso, dove consenso e confini vengono prima di tutto.',
+    },
+  }
+  const screenCopy: Record<ViewKey, { title: string; body: string }> = {
+    discover: discoverCopy[activeSection],
     matches: {
       title: 'Match e conversazioni',
-      body: "Scegli una persona e scrivi quando c'e davvero interesse.",
+      body: "Continua solo le conversazioni che hanno davvero senso per te.",
     },
     invites: {
       title: 'Inviti privati',
-      body: "Crea codici semplici per far entrare persone fidate nella tua cerchia.",
+      body: 'Crea codici riservati e fai entrare solo persone che vuoi davvero nella tua cerchia.',
     },
     profile: {
       title: 'Il tuo profilo',
-      body: 'Aggiorna come ti presenti, cosa cerchi e quando sei disponibile.',
+      body: 'Scegli come presentarti, cosa cerchi e quali dettagli mostrare agli altri.',
     },
     legal: {
-      title: 'Regole chiare',
-      body: 'Termini, privacy, sicurezza e passaggi pratici per rendere CerchiaMi un progetto ufficiale.',
+      title: 'Termini e privacy',
+      body: 'Regole, privacy, sicurezza e consenso spiegati in modo chiaro.',
     },
+  }
+
+  async function recordLegalAcceptance(userId: string, context: string) {
+    if (!supabase) {
+      return
+    }
+
+    try {
+      const { error } = await supabase.from('legal_acceptances').upsert(
+        {
+          user_id: userId,
+          document_version: LEGAL_DOCUMENT_VERSION,
+          accepted_context: context,
+          user_agent: navigator.userAgent.slice(0, 255),
+          accepted_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,document_version,accepted_context' },
+      )
+
+      if (error) {
+        throw error
+      }
+    } catch (error) {
+      console.warn('Legal acceptance not stored in Supabase.', error)
+    }
   }
 
   async function saveProfileToSupabase(userId: string, profile: OwnProfile) {
@@ -1239,6 +1435,7 @@ function App() {
         return 'Account creato: conferma la email, poi entra con la stessa password.'
       }
 
+      await recordLegalAcceptance(user.id, request.mode)
       await loadAccount(user.id, user.email ?? email)
       return null
     } catch (error) {
@@ -1285,6 +1482,7 @@ function App() {
 
     try {
       await saveProfileToSupabase(userId, profile)
+      await recordLegalAcceptance(userId, 'onboarding')
       setOwnProfile(profile)
       setSession(ownProfileToSession(profile, normalizedCode, userId, authEmail))
       setCurrentUserId(userId)
@@ -1397,6 +1595,147 @@ function App() {
 
   function passProfile(profile: Profile) {
     setPassedIds((current) => unique([...current, profile.id]))
+  }
+
+  async function blockProfile(profile: Profile) {
+    setBlockedIds((current) => unique([...current, profile.id]))
+    setPassedIds((current) => unique([...current, profile.id]))
+    setLikedIds((current) => current.filter((id) => id !== profile.id))
+    setMatchedIds((current) => current.filter((id) => id !== profile.id))
+    setSelectedMatchId((current) => (current === profile.id ? null : current))
+    setRemoteState((current) => ({
+      ...current,
+      blockedIds: unique([...current.blockedIds, profile.id]),
+      likedIds: current.likedIds.filter((id) => id !== profile.id),
+      matchedIds: current.matchedIds.filter((id) => id !== profile.id),
+    }))
+
+    if (profile.source === 'remote' && currentUserId && supabase) {
+      try {
+        const { error } = await supabase.from('user_blocks').upsert(
+          {
+            blocker_profile: currentUserId,
+            blocked_profile: profile.id,
+          },
+          { onConflict: 'blocker_profile,blocked_profile' },
+        )
+
+        if (error) {
+          throw error
+        }
+
+        setNotice(`${profile.name} bloccato.`)
+        return
+      } catch (error) {
+        console.warn('Block not stored in Supabase.', error)
+      }
+    }
+
+    setNotice(`${profile.name} nascosto su questo dispositivo.`)
+  }
+
+  async function submitReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!reportTarget) {
+      return
+    }
+
+    const target = reportTarget
+    const details = reportDetails.trim()
+
+    if (target.source === 'remote' && currentUserId && supabase) {
+      try {
+        const { error } = await supabase.from('user_reports').insert({
+          reporter_profile: currentUserId,
+          reported_profile: target.id,
+          category: reportCategory,
+          details: details || null,
+        })
+
+        if (error) {
+          throw error
+        }
+
+        setNotice(`Segnalazione inviata per ${target.name}.`)
+      } catch (error) {
+        console.warn('Report not stored in Supabase.', error)
+        setNotice('Segnalazione non salvata online: applica lo schema Supabase.')
+      }
+    } else {
+      setNotice('Segnalazione preparata: serve un profilo Supabase reale.')
+    }
+
+    setReportTarget(null)
+    setReportCategory('molestia')
+    setReportDetails('')
+  }
+
+  async function deleteAccount() {
+    if (!currentUserId || !supabase) {
+      setNotice('Sessione non disponibile per cancellare account.')
+      return
+    }
+
+    setAccountDeleting(true)
+
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      let hardDeleted = false
+
+      if (token) {
+        const response = await fetch('/api/delete-account', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        hardDeleted = response.ok
+      }
+
+      if (!hardDeleted) {
+        try {
+          await supabase.from('account_deletion_requests').insert({
+            user_id: currentUserId,
+            email: authEmail || session?.email || null,
+            reason: 'self_service',
+          })
+        } catch (error) {
+          console.warn('Deletion request not stored in Supabase.', error)
+        }
+
+        const { error } = await supabase
+          .from('profiles')
+          .delete()
+          .eq('id', currentUserId)
+
+        if (error) {
+          throw error
+        }
+      }
+
+      await supabase.auth.signOut()
+      setSession(null)
+      setOwnProfile(EMPTY_PROFILE)
+      setCurrentUserId(null)
+      setOnboardingUserId(null)
+      setRemoteState(REMOTE_STATE_EMPTY)
+      setInvites([])
+      setLikedIds([])
+      setPassedIds([])
+      setBlockedIds([])
+      setMatchedIds([])
+      setMessages({})
+      setShowNightReminder(false)
+      setLaunchOpen(false)
+    } catch (error) {
+      console.error(error)
+      setNotice('Cancellazione non completata. Riprova tra poco o contatta il supporto.')
+    } finally {
+      setAccountDeleting(false)
+    }
   }
 
   async function sendMessage(event: FormEvent<HTMLFormElement>) {
@@ -1513,6 +1852,38 @@ function App() {
     setNotice(`Codice copiato: ${code}`)
   }
 
+  async function deleteInvite(invite: Invite) {
+    if (BASE_INVITES.includes(invite.code)) {
+      setHiddenInviteCodes((current) => unique([...current, invite.code]))
+      setNotice('Invito rimosso dalla tua lista.')
+      return
+    }
+
+    if (supabase && currentUserId && invite.id) {
+      const { error } = await supabase
+        .from('invites')
+        .delete()
+        .eq('id', invite.id)
+        .eq('created_by', currentUserId)
+
+      if (error) {
+        console.error(error)
+        setNotice('Invito non cancellato. Riprova tra poco.')
+        return
+      }
+
+      setRemoteState((current) => ({
+        ...current,
+        invites: current.invites.filter((item) => item.id !== invite.id),
+      }))
+      setNotice('Invito cancellato.')
+      return
+    }
+
+    setInvites((current) => current.filter((item) => item.code !== invite.code))
+    setNotice('Invito cancellato.')
+  }
+
   async function saveOwnProfile() {
     if (!session) {
       return
@@ -1547,6 +1918,12 @@ function App() {
     } finally {
       setProfileSaving(false)
     }
+  }
+
+  const publicLegalPage = currentPublicLegalPage()
+
+  if (publicLegalPage) {
+    return <PublicLegalPageView pageKey={publicLegalPage} />
   }
 
   if (!launchOpen) {
@@ -1639,14 +2016,6 @@ function App() {
         <div className="mood-chips" aria-label="Filtri rapidi">
           <button
             type="button"
-            className={availableOnly ? 'is-active' : ''}
-            onClick={() => setAvailableOnly((current) => !current)}
-          >
-            <Calendar size={17} />
-            Oggi
-          </button>
-          <button
-            type="button"
             className={maxDistance <= 5 ? 'is-active' : ''}
             onClick={() => setMaxDistance(maxDistance <= 5 ? 25 : 5)}
           >
@@ -1710,7 +2079,7 @@ function App() {
                 </span>
                 <span>
                   <strong>{LEGAL_UPDATED_AT}</strong>
-                  <small>bozza aggiornata</small>
+                  <small>aggiornato</small>
                 </span>
               </div>
             ) : (
@@ -1730,16 +2099,6 @@ function App() {
               </div>
             )}
 
-            <div className="hero-photo-strip" aria-hidden="true">
-              {spotlightImages.map((image, index) => (
-                  <img
-                    key={`${image}-${index}`}
-                    src={image}
-                    alt=""
-                    className={index === 0 ? 'is-main' : ''}
-                  />
-                ))}
-            </div>
           </section>
 
           {activeView === 'discover' && (
@@ -1756,29 +2115,17 @@ function App() {
 
                 <label className="distance-field">
                   <SlidersHorizontal size={18} />
-                  <span>{maxDistance} km</span>
                   <input
-                    type="range"
-                    min="2"
-                    max="30"
+                    type="number"
+                    min="0"
+                    step="1"
                     value={maxDistance}
-                    onChange={(event) => setMaxDistance(Number(event.target.value))}
+                    onChange={(event) =>
+                      setMaxDistance(Math.max(0, Number(event.target.value) || 0))
+                    }
+                    aria-label="Distanza massima in chilometri"
                   />
-                </label>
-
-                <label className="select-field">
-                  Intenzione
-                  <select
-                    value={intentFilter}
-                    onChange={(event) => setIntentFilter(event.target.value)}
-                  >
-                    <option value="all">Tutte</option>
-                    {RELATIONSHIP_GOALS.map((goal) => (
-                      <option key={goal.value} value={goal.value}>
-                        {goal.label}
-                      </option>
-                    ))}
-                  </select>
+                  <span>km</span>
                 </label>
 
                 <label className="age-field">
@@ -1804,15 +2151,6 @@ function App() {
                     />
                   </span>
                 </label>
-
-                <label className="toggle-pill">
-                  <input
-                    type="checkbox"
-                    checked={availableOnly}
-                    onChange={(event) => setAvailableOnly(event.target.checked)}
-                  />
-                  Oggi
-                </label>
               </div>
 
               <ProfileGrid
@@ -1822,9 +2160,12 @@ function App() {
                 activeSection={activeSection}
                 likedIds={effectiveLikedIds}
                 passedIds={passedIds}
+                blockedIds={effectiveBlockedIds}
                 matchedIds={effectiveMatchedIds}
                 onLike={likeProfile}
                 onPass={passProfile}
+                onBlock={blockProfile}
+                onReport={setReportTarget}
                 onOpenInvites={() => setActiveView('invites')}
                 onOpenProfile={() => setActiveView('profile')}
               />
@@ -1850,11 +2191,15 @@ function App() {
 
           {activeView === 'invites' && (
             <InviteManager
+              baseInvites={BASE_INVITES.filter(
+                (code) => !hiddenInviteCodes.includes(code),
+              )}
               invites={[...remoteState.invites, ...invites]}
               invitePurpose={invitePurpose}
               setInvitePurpose={setInvitePurpose}
               createInvite={createInvite}
               copyInvite={copyInvite}
+              deleteInvite={deleteInvite}
             />
           )}
 
@@ -1865,6 +2210,8 @@ function App() {
               session={session}
               onSave={saveOwnProfile}
               saving={profileSaving}
+              onDeleteAccount={deleteAccount}
+              deleting={accountDeleting}
             />
           )}
 
@@ -1879,6 +2226,17 @@ function App() {
       />
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
+      {reportTarget && (
+        <ReportModal
+          profile={reportTarget}
+          category={reportCategory}
+          details={reportDetails}
+          setCategory={setReportCategory}
+          setDetails={setReportDetails}
+          onClose={() => setReportTarget(null)}
+          onSubmit={submitReport}
+        />
+      )}
       {showNightReminder && (
         <NightReminder
           onClose={() => {
@@ -1891,6 +2249,63 @@ function App() {
           }}
         />
       )}
+    </main>
+  )
+}
+
+function PublicLegalPageView({ pageKey }: { pageKey: PublicLegalKey }) {
+  const page = PUBLIC_LEGAL_PAGES[pageKey]
+  const Icon = page.Icon
+
+  return (
+    <main className="public-legal-shell">
+      <header className="public-legal-top">
+        <a className="public-brand" href="/" aria-label="Torna a CerchiaMi">
+          <BrandMark className="brand-mark" />
+          <span className="wordmark">
+            <span>Cerchia</span>
+            <span>Mi</span>
+          </span>
+        </a>
+        <a className="ghost-button" href="/">
+          Entra
+        </a>
+      </header>
+
+      <nav className="public-legal-nav" aria-label="Documenti legali">
+        {Object.values(PUBLIC_LEGAL_PAGES).map((item) => (
+          <a
+            key={item.key}
+            className={item.key === pageKey ? 'is-active' : ''}
+            href={item.path}
+          >
+            {item.navLabel}
+          </a>
+        ))}
+      </nav>
+
+      <section className="public-legal-panel" aria-labelledby="public-legal-title">
+        <div className="legal-orbit" aria-hidden="true">
+          <Icon size={28} />
+        </div>
+        <div>
+          <p className="eyebrow">Aggiornato {LEGAL_UPDATED_AT}</p>
+          <h1 id="public-legal-title">{page.title}</h1>
+          <p>{page.summary}</p>
+        </div>
+      </section>
+
+      <div className="public-legal-sections">
+        {page.sections.map((section) => (
+          <article className="legal-card" key={section.title}>
+            <h3>{section.title}</h3>
+            {section.body.map((paragraph) => (
+              <p key={paragraph}>{paragraph}</p>
+            ))}
+          </article>
+        ))}
+      </div>
+
     </main>
   )
 }
@@ -2238,6 +2653,12 @@ function LaunchScreen({ onStart }: { onStart: () => void }) {
         </span>
         <span className="launch-hint">Tocca per iniziare</span>
       </button>
+      <div className="legal-links" aria-label="Documenti legali">
+        <a href="/terms">Termini</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/cookie">Cookie</a>
+        <a href="/safety">Sicurezza</a>
+      </div>
     </main>
   )
 }
@@ -2340,9 +2761,17 @@ function EmailAccess({
               onChange={(event) => setAccepted(event.target.checked)}
             />
             <span>
-              Confermo maggiore eta, rispetto, consenso e discrezione.
+              Confermo maggiore eta e accetto Termini, Privacy e regole di
+              sicurezza.
             </span>
           </label>
+
+          <div className="legal-links is-inline" aria-label="Documenti legali">
+            <a href="/terms">Termini</a>
+            <a href="/privacy">Privacy</a>
+            <a href="/cookie">Cookie</a>
+            <a href="/safety">Sicurezza</a>
+          </div>
 
           {error && <p className="form-error">{error}</p>}
 
@@ -2789,6 +3218,78 @@ function NightReminder({ onClose }: { onClose: () => void }) {
   )
 }
 
+function ReportModal({
+  profile,
+  category,
+  details,
+  setCategory,
+  setDetails,
+  onClose,
+  onSubmit,
+}: {
+  profile: Profile
+  category: string
+  details: string
+  setCategory: Dispatch<SetStateAction<string>>
+  setDetails: Dispatch<SetStateAction<string>>
+  onClose: () => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+}) {
+  return (
+    <div className="disclaimer-backdrop" role="presentation">
+      <section
+        className="report-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-title"
+      >
+        <div className="legal-card-head">
+          <span aria-hidden="true">
+            <Flag size={21} />
+          </span>
+          <div>
+            <p className="eyebrow">Segnalazione</p>
+            <h2 id="report-title">Segnala {profile.name}</h2>
+          </div>
+        </div>
+        <form className="report-form" onSubmit={onSubmit}>
+          <label>
+            Motivo
+            <select
+              value={category}
+              onChange={(event) => setCategory(event.target.value)}
+            >
+              <option value="molestia">Molestia o pressione</option>
+              <option value="esplicito">Contenuto esplicito non richiesto</option>
+              <option value="fake">Profilo falso o truffa</option>
+              <option value="sicurezza">Problema di sicurezza</option>
+              <option value="altro">Altro</option>
+            </select>
+          </label>
+          <label>
+            Dettagli
+            <textarea
+              value={details}
+              onChange={(event) => setDetails(event.target.value)}
+              rows={4}
+              placeholder="Aggiungi contesto utile per la revisione"
+            />
+          </label>
+          <div className="danger-actions">
+            <button type="button" className="ghost-button" onClick={onClose}>
+              Annulla
+            </button>
+            <button type="submit" className="primary-button">
+              <Flag size={17} />
+              Invia segnalazione
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
+  )
+}
+
 function LegalCenter() {
   return (
     <section className="legal-center" aria-labelledby="legal-center-title">
@@ -2800,9 +3301,8 @@ function LegalCenter() {
           <p className="eyebrow">Trasparenza</p>
           <h3 id="legal-center-title">Documenti legali in chiaro</h3>
           <p>
-            Bozza operativa per utenti finali e per il titolare del progetto.
-            Prima del lancio pubblico va validata da un professionista legale o
-            privacy.
+            Qui trovi le regole principali di CerchiaMi: uso dell'app, privacy,
+            cookie, sicurezza, consenso e gestione dei tuoi dati.
           </p>
         </div>
       </div>
@@ -2828,22 +3328,6 @@ function LegalCenter() {
           </article>
         ))}
       </div>
-
-      <section className="owner-checklist" aria-labelledby="owner-checklist-title">
-        <div>
-          <p className="eyebrow">Per te</p>
-          <h3 id="owner-checklist-title">Come renderla ufficiale e tua</h3>
-          <p>
-            Questi sono i passaggi pratici da chiudere prima di presentarla come
-            app pubblica e sotto il tuo controllo.
-          </p>
-        </div>
-        <ol>
-          {OFFICIAL_CHECKLIST.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ol>
-      </section>
     </section>
   )
 }
@@ -2855,9 +3339,12 @@ function ProfileGrid({
   activeSection,
   likedIds,
   passedIds,
+  blockedIds,
   matchedIds,
   onLike,
   onPass,
+  onBlock,
+  onReport,
   onOpenInvites,
   onOpenProfile,
 }: {
@@ -2867,9 +3354,12 @@ function ProfileGrid({
   activeSection: SectionKey
   likedIds: string[]
   passedIds: string[]
+  blockedIds: string[]
   matchedIds: string[]
   onLike: (profile: Profile) => void
   onPass: (profile: Profile) => void
+  onBlock: (profile: Profile) => void
+  onReport: (profile: Profile) => void
   onOpenInvites: () => void
   onOpenProfile: () => void
 }) {
@@ -2896,6 +3386,7 @@ function ProfileGrid({
       {profiles.map((profile, index) => {
         const liked = likedIds.includes(profile.id)
         const passed = passedIds.includes(profile.id)
+        const blocked = blockedIds.includes(profile.id)
         const matched = matchedIds.includes(profile.id)
         const score = compatibilityScore(profile, viewerProfile, activeSection)
         const reasons = compatibilityReasons(profile, viewerProfile, activeSection)
@@ -2904,7 +3395,7 @@ function ProfileGrid({
           <article
             key={profile.id}
             className={`profile-card ${index === 0 ? 'is-featured' : ''} ${
-              passed ? 'is-muted' : ''
+              passed || blocked ? 'is-muted' : ''
             }`}
           >
             <div className="photo-frame">
@@ -3020,6 +3511,17 @@ function ProfileGrid({
                   {matched ? 'Match' : liked ? 'Salvato' : 'Mi interessa'}
                 </button>
               </div>
+
+              <div className="profile-safety-actions" aria-label="Sicurezza profilo">
+                <button type="button" onClick={() => onReport(profile)}>
+                  <Flag size={15} />
+                  Segnala
+                </button>
+                <button type="button" onClick={() => onBlock(profile)}>
+                  <Ban size={15} />
+                  Blocca
+                </button>
+              </div>
             </div>
           </article>
         )
@@ -3133,26 +3635,31 @@ function ProfileSkeleton() {
 }
 
 function InviteManager({
+  baseInvites,
   invites,
   invitePurpose,
   setInvitePurpose,
   createInvite,
   copyInvite,
+  deleteInvite,
 }: {
+  baseInvites: string[]
   invites: Invite[]
   invitePurpose: string
   setInvitePurpose: Dispatch<SetStateAction<string>>
   createInvite: () => void
   copyInvite: (code: string) => void
+  deleteInvite: (invite: Invite) => void
 }) {
   return (
     <section className="invite-manager">
       <div className="invite-create">
         <label>
-          Motivo
+          Nome invito
           <input
             value={invitePurpose}
             onChange={(event) => setInvitePurpose(event.target.value)}
+            placeholder="Es. amici del weekend"
           />
         </label>
         <button type="button" className="primary-button" onClick={createInvite}>
@@ -3162,21 +3669,39 @@ function InviteManager({
       </div>
 
       <div className="invite-list">
-        {BASE_INVITES.map((code) => (
+        {baseInvites.map((code) => (
           <div className="invite-row" key={code}>
             <span>
               <strong>{code}</strong>
               <small>Codice iniziale</small>
             </span>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() => copyInvite(code)}
-              aria-label={`Copia ${code}`}
-              title="Copia"
-            >
-              <Copy size={17} />
-            </button>
+            <span className="invite-actions">
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => copyInvite(code)}
+                aria-label={`Copia ${code}`}
+                title="Copia"
+              >
+                <Copy size={17} />
+              </button>
+              <button
+                type="button"
+                className="icon-button danger-icon"
+                onClick={() =>
+                  deleteInvite({
+                    code,
+                    purpose: 'Codice iniziale',
+                    createdAt: '',
+                    used: false,
+                  })
+                }
+                aria-label={`Cancella ${code}`}
+                title="Cancella"
+              >
+                <Trash2 size={17} />
+              </button>
+            </span>
           </div>
         ))}
 
@@ -3189,15 +3714,26 @@ function InviteManager({
                 {invite.used ? ' · usato' : ''}
               </small>
             </span>
-            <button
-              type="button"
-              className="icon-button"
-              onClick={() => copyInvite(invite.code)}
-              aria-label={`Copia ${invite.code}`}
-              title="Copia"
-            >
-              <Copy size={17} />
-            </button>
+            <span className="invite-actions">
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => copyInvite(invite.code)}
+                aria-label={`Copia ${invite.code}`}
+                title="Copia"
+              >
+                <Copy size={17} />
+              </button>
+              <button
+                type="button"
+                className="icon-button danger-icon"
+                onClick={() => deleteInvite(invite)}
+                aria-label={`Cancella ${invite.code}`}
+                title="Cancella"
+              >
+                <Trash2 size={17} />
+              </button>
+            </span>
           </div>
         ))}
       </div>
@@ -3211,13 +3747,19 @@ function OwnProfileEditor({
   session,
   onSave,
   saving,
+  onDeleteAccount,
+  deleting,
 }: {
   profile: OwnProfile
   setProfile: Dispatch<SetStateAction<OwnProfile>>
   session: Session
   onSave: () => void
   saving: boolean
+  onDeleteAccount: () => void
+  deleting: boolean
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
   function toggleSection(section: SectionKey) {
     setProfile((current) => {
       const hasSection = current.sections.includes(section)
@@ -3441,6 +3983,48 @@ function OwnProfileEditor({
         <Check size={18} />
         {saving ? 'Salvataggio...' : 'Salva profilo'}
       </button>
+
+      <section className="danger-zone" aria-labelledby="delete-account-title">
+        <div>
+          <p className="eyebrow">Account</p>
+          <h3 id="delete-account-title">Cancellazione dati</h3>
+          <p>
+            Puoi rimuovere il profilo e inviare una richiesta di cancellazione
+            dei dati collegati al tuo account. Dopo la conferma verrai disconnesso.
+          </p>
+        </div>
+        {confirmDelete ? (
+          <div className="danger-actions">
+            <button
+              type="button"
+              className="ghost-button"
+              onClick={() => setConfirmDelete(false)}
+              disabled={deleting}
+            >
+              Annulla
+            </button>
+            <button
+              type="button"
+              className="danger-button"
+              onClick={onDeleteAccount}
+              disabled={deleting}
+            >
+              <Trash2 size={17} />
+              {deleting ? 'Cancellazione...' : 'Conferma cancellazione'}
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="danger-button"
+            onClick={() => setConfirmDelete(true)}
+            disabled={deleting}
+          >
+            <Trash2 size={17} />
+            Cancella account
+          </button>
+        )}
+      </section>
     </section>
   )
 }
