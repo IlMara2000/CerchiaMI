@@ -28,7 +28,7 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
-type ViewKey = 'discover' | 'matches' | 'invites' | 'profile'
+type ViewKey = 'discover' | 'matches' | 'invites' | 'profile' | 'legal'
 type ProfileSource = 'remote'
 
 type SectionMeta = {
@@ -37,6 +37,14 @@ type SectionMeta = {
   title: string
   detail: string
   Icon: LucideIcon
+}
+
+type LegalSection = {
+  eyebrow: string
+  title: string
+  Icon: LucideIcon
+  summary: string
+  items: string[]
 }
 
 type Profile = {
@@ -194,6 +202,7 @@ const PROFILE_SELECT =
   'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility'
 
 const BRAND_MARK_SRC = '/favicon.svg?v=20260516'
+const LEGAL_UPDATED_AT = '21 maggio 2026'
 
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
@@ -234,6 +243,7 @@ const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'matches', label: 'Match', Icon: Heart },
   { key: 'invites', label: 'Inviti', Icon: KeyRound },
   { key: 'profile', label: 'Profilo', Icon: User },
+  { key: 'legal', label: 'Legale', Icon: ShieldCheck },
 ]
 
 const RELATIONSHIP_GOALS = [
@@ -244,6 +254,76 @@ const RELATIONSHIP_GOALS = [
 ]
 
 const BASE_INVITES = ['CERCHIAMI-2026', 'PRIVATO-18', 'AMICI-001']
+
+const LEGAL_SECTIONS: LegalSection[] = [
+  {
+    eyebrow: 'Termini',
+    title: 'Termini e condizioni',
+    Icon: BadgeCheck,
+    summary:
+      'CerchiaMi e un servizio privato su invito per conoscere persone reali in modo rispettoso, semplice e sicuro.',
+    items: [
+      "Puoi usare l'app solo se hai almeno 18 anni e i dati del profilo sono veri.",
+      "L'account e personale: non cedere login, codici invito o identita ad altre persone.",
+      'Sono vietati molestie, minacce, contenuti illegali, spam, truffe, profili falsi e pressioni sessuali o emotive.',
+      'CerchiaMi puo limitare o sospendere account e contenuti quando serve a proteggere utenti, servizio o obblighi di legge.',
+      'Le funzionalita possono cambiare nel tempo; eventuali servizi a pagamento dovranno avere prezzi, recesso e condizioni dedicate prima del lancio.',
+    ],
+  },
+  {
+    eyebrow: 'Privacy',
+    title: 'Dati personali',
+    Icon: Lock,
+    summary:
+      "Questa e una bozza chiara dell'informativa: prima del lancio pubblico va completata con dati reali del titolare e contatti privacy.",
+    items: [
+      'Titolare da completare: Daniele Marangoni, CerchiaMi o la societa/partita IVA che deciderai di usare.',
+      'Dati trattati: email, profilo, eta, citta, interessi, preferenze, sezioni scelte, match, messaggi, inviti, log tecnici, indirizzo IP e consensi.',
+      'Finalita: creare account, mostrare profili compatibili, gestire inviti e chat, prevenire abusi, mantenere sicurezza e rispettare obblighi legali.',
+      'Alcune informazioni in una dating app possono diventare delicate: orientamento, preferenze o contenuti intimi richiedono minimizzazione, consenso esplicito e protezioni forti.',
+      'Diritti utente: accesso, rettifica, cancellazione, portabilita, limitazione, opposizione, revoca del consenso e reclamo al Garante Privacy.',
+    ],
+  },
+  {
+    eyebrow: 'Sicurezza',
+    title: 'Regole community',
+    Icon: ShieldCheck,
+    summary:
+      'La sicurezza deve essere visibile dentro il prodotto, non nascosta in fondo a un documento legale.',
+    items: [
+      'No nudi, clip esplicite o messaggi sessuali non richiesti. Il consenso deve essere chiaro, libero e revocabile.',
+      'Non condividere dati sensibili di altre persone, screenshot privati, indirizzi, documenti o conversazioni senza permesso.',
+      'Prima del lancio pubblico servono segnalazione, blocco utente, revisione manuale e una procedura per rispondere rapidamente agli abusi.',
+      'CerchiaMi non e un servizio di emergenza: se qualcuno e in pericolo reale bisogna contattare subito autorita o soccorsi.',
+      'La sezione 18+ resta accessibile solo a maggiorenni e con reminder leggero di rispetto e limiti.',
+    ],
+  },
+  {
+    eyebrow: 'Cookie',
+    title: 'Cookie e strumenti tecnici',
+    Icon: Sparkles,
+    summary:
+      "Per ora l'app usa storage tecnico per login, preferenze e disclaimer. Analytics e advertising richiedono una gestione separata.",
+    items: [
+      'Cookie/local storage tecnici possono servire per sessione, sicurezza, lingua, preferenze e consenso giornaliero.',
+      'Se aggiungi analytics, pixel, advertising, mappe o video esterni, devi indicarlo e chiedere consenso prima del tracciamento non tecnico.',
+      'La privacy/cookie policy deve essere raggiungibile con un click anche dalle pagine pubbliche.',
+      'Devi registrare i consensi in modo dimostrabile e consentire la revoca con la stessa facilita con cui vengono dati.',
+    ],
+  },
+]
+
+const OFFICIAL_CHECKLIST = [
+  'Decidi il titolare ufficiale: persona fisica, ditta individuale o societa. I documenti legali devono riportare quel soggetto.',
+  'Compra e gestisci il dominio ufficiale, email dedicate tipo privacy@cerchiami.it e abuse@cerchiami.it, e account GitHub/Vercel/Supabase intestati correttamente.',
+  'Completa Termini, Privacy Policy, Cookie Policy e Regole Community con dati fiscali, contatti, responsabili, tempi di conservazione e base giuridica.',
+  "Firma o accetta i Data Processing Addendum con fornitori come Supabase e Vercel, poi conserva l'elenco dei responsabili del trattamento.",
+  'Versiona accettazioni, consensi, disclaimer, update privacy e modifiche sostanziali ai termini.',
+  'Attiva cancellazione account, esportazione dati, segnalazione contenuti, blocco utenti, audit log e policy di retention.',
+  'Valuta con un consulente privacy una DPIA prima di scalare: una dating app puo trattare dati molto personali e messaggi privati.',
+  'Registra marchio/nome se vuoi proteggerlo, chiarisci proprieta del codice, licenze immagini, librerie open source e asset grafici.',
+  'Se aggiungi pagamenti, prepara condizioni economiche, fatture, diritto di recesso quando applicabile, assistenza e gestione reclami.',
+]
 
 const GROUP_IMAGES = {
   rooftop:
@@ -1025,7 +1105,9 @@ function App() {
     activeView === 'discover'
       ? compatibleProfiles.slice(0, 3)
       : visibleProfiles.slice(0, 3)
-  const spotlightImages = spotlightProfiles.length
+  const spotlightImages = activeView === 'legal'
+    ? [GROUP_IMAGES.parkWalk, GROUP_IMAGES.rooftop, GROUP_IMAGES.celebration]
+    : spotlightProfiles.length
     ? spotlightProfiles.map((profile) => profile.image)
     : GROUP_IMAGE_POOL.slice(0, 3)
   const topSuggestion = compatibleProfiles[0] ?? visibleProfiles[0] ?? null
@@ -1045,6 +1127,10 @@ function App() {
     profile: {
       title: 'Il tuo profilo',
       body: 'Aggiorna come ti presenti, cosa cerchi e quando sei disponibile.',
+    },
+    legal: {
+      title: 'Regole chiare',
+      body: 'Termini, privacy, sicurezza e passaggi pratici per rendere CerchiaMi un progetto ufficiale.',
     },
   }
 
@@ -1549,48 +1635,50 @@ function App() {
         setActiveView={setActiveView}
       />
 
-      <div className="mood-chips" aria-label="Filtri rapidi">
-        <button
-          type="button"
-          className={availableOnly ? 'is-active' : ''}
-          onClick={() => setAvailableOnly((current) => !current)}
-        >
-          <Calendar size={17} />
-          Oggi
-        </button>
-        <button
-          type="button"
-          className={maxDistance <= 5 ? 'is-active' : ''}
-          onClick={() => setMaxDistance(maxDistance <= 5 ? 25 : 5)}
-        >
-          <MapPin size={17} />
-          Vicini
-        </button>
-        <button
-          type="button"
-          className={query.toLowerCase() === 'musica' ? 'is-active' : ''}
-          onClick={() =>
-            setQuery((current) =>
-              current.toLowerCase() === 'musica' ? '' : 'musica',
-            )
-          }
-        >
-          <MessageCircle size={17} />
-          Musica
-        </button>
-        <button
-          type="button"
-          className={query.toLowerCase() === 'viaggi' ? 'is-active' : ''}
-          onClick={() =>
-            setQuery((current) =>
-              current.toLowerCase() === 'viaggi' ? '' : 'viaggi',
-            )
-          }
-        >
-          <Sparkles size={17} />
-          Viaggi
-        </button>
-      </div>
+      {activeView === 'discover' && (
+        <div className="mood-chips" aria-label="Filtri rapidi">
+          <button
+            type="button"
+            className={availableOnly ? 'is-active' : ''}
+            onClick={() => setAvailableOnly((current) => !current)}
+          >
+            <Calendar size={17} />
+            Oggi
+          </button>
+          <button
+            type="button"
+            className={maxDistance <= 5 ? 'is-active' : ''}
+            onClick={() => setMaxDistance(maxDistance <= 5 ? 25 : 5)}
+          >
+            <MapPin size={17} />
+            Vicini
+          </button>
+          <button
+            type="button"
+            className={query.toLowerCase() === 'musica' ? 'is-active' : ''}
+            onClick={() =>
+              setQuery((current) =>
+                current.toLowerCase() === 'musica' ? '' : 'musica',
+              )
+            }
+          >
+            <MessageCircle size={17} />
+            Musica
+          </button>
+          <button
+            type="button"
+            className={query.toLowerCase() === 'viaggi' ? 'is-active' : ''}
+            onClick={() =>
+              setQuery((current) =>
+                current.toLowerCase() === 'viaggi' ? '' : 'viaggi',
+              )
+            }
+          >
+            <Sparkles size={17} />
+            Viaggi
+          </button>
+        </div>
+      )}
 
       <div className="app-stage">
         <section className="main-pane">
@@ -1598,7 +1686,7 @@ function App() {
             <div className="daily-copy">
               <h2 id="screen-title">{screenCopy[activeView].title}</h2>
               <p>{screenCopy[activeView].body}</p>
-              {topSuggestion && activeView !== 'profile' && (
+              {topSuggestion && activeView === 'discover' && (
                 <div className="today-suggestion">
                   <Sparkles size={17} />
                   <span>
@@ -1610,20 +1698,37 @@ function App() {
               )}
             </div>
 
-            <div className="quick-stats" aria-label="Riepilogo">
-              <div>
-                <strong>{visibleProfiles.length}</strong>
-                <span>profili</span>
+            {activeView === 'legal' ? (
+              <div className="legal-hero-summary" aria-label="Stato legale">
+                <span>
+                  <strong>18+</strong>
+                  <small>solo maggiorenni</small>
+                </span>
+                <span>
+                  <strong>GDPR</strong>
+                  <small>privacy e diritti</small>
+                </span>
+                <span>
+                  <strong>{LEGAL_UPDATED_AT}</strong>
+                  <small>bozza aggiornata</small>
+                </span>
               </div>
-              <div>
-                <strong>{matchProfiles.length}</strong>
-                <span>match</span>
+            ) : (
+              <div className="quick-stats" aria-label="Riepilogo">
+                <div>
+                  <strong>{visibleProfiles.length}</strong>
+                  <span>profili</span>
+                </div>
+                <div>
+                  <strong>{matchProfiles.length}</strong>
+                  <span>match</span>
+                </div>
+                <div>
+                  <strong>{effectiveLikedIds.length}</strong>
+                  <span>interessi</span>
+                </div>
               </div>
-              <div>
-                <strong>{effectiveLikedIds.length}</strong>
-                <span>interessi</span>
-              </div>
-            </div>
+            )}
 
             <div className="hero-photo-strip" aria-hidden="true">
               {spotlightImages.map((image, index) => (
@@ -1762,6 +1867,8 @@ function App() {
               saving={profileSaving}
             />
           )}
+
+          {activeView === 'legal' && <LegalCenter />}
         </section>
       </div>
 
@@ -1893,6 +2000,21 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
       ring.position.set(-2.8, -1.45, -0.8)
       ring.rotation.set(1.22, 0.42, -0.28)
 
+      const nodeGeometry = new THREE.SphereGeometry(0.1, 18, 18)
+      const primaryNodeMaterial = new THREE.MeshBasicMaterial({
+        color: AMBIENT_PALETTES[activeSectionRef.current].primary,
+        opacity: 0.34,
+        transparent: true,
+      })
+      const secondaryNodeMaterial = new THREE.MeshBasicMaterial({
+        color: AMBIENT_PALETTES[activeSectionRef.current].secondary,
+        opacity: 0.3,
+        transparent: true,
+      })
+      const nodeA = new THREE.Mesh(nodeGeometry, primaryNodeMaterial)
+      const nodeB = new THREE.Mesh(nodeGeometry, secondaryNodeMaterial)
+      const nodeC = new THREE.Mesh(nodeGeometry, primaryNodeMaterial)
+
       const planeGeometry = new THREE.IcosahedronGeometry(0.82, 1)
       const planeMaterial = new THREE.MeshBasicMaterial({
         color: '#172320',
@@ -1930,13 +2052,18 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
       })
       const points = new THREE.Points(pointGeometry, pointMaterial)
       points.position.set(0.1, 0.05, -1.5)
+      nodeA.position.set(2.15, -0.18, -0.4)
+      nodeB.position.set(-1.45, 0.78, -0.85)
+      nodeC.position.set(0.22, 1.32, -1.4)
 
-      group.add(knot, ring, shard, points)
+      group.add(knot, ring, shard, points, nodeA, nodeB, nodeC)
 
       function applyPalette(section: SectionKey) {
         const palette = AMBIENT_PALETTES[section]
         knotMaterial.color.set(palette.primary)
         ringMaterial.color.set(palette.secondary)
+        primaryNodeMaterial.color.set(palette.primary)
+        secondaryNodeMaterial.color.set(palette.secondary)
       }
 
       sceneControllerRef.current = { applyPalette }
@@ -1954,6 +2081,8 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
       let frame = 0
       let raf = 0
       let resizeRaf = 0
+      let pointerX = 0
+      let pointerY = 0
 
       function cancelRenderLoop() {
         if (raf) {
@@ -1971,7 +2100,24 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
           ring.rotation.z -= 0.0018
           shard.rotation.x -= 0.0016
           points.rotation.z += 0.0009
+          nodeA.position.set(
+            1.4 + Math.cos(frame * 0.018) * 1.08,
+            -0.4 + Math.sin(frame * 0.021) * 0.66,
+            -0.4 + Math.sin(frame * 0.017) * 0.42,
+          )
+          nodeB.position.set(
+            -1.9 + Math.sin(frame * 0.016) * 0.92,
+            0.55 + Math.cos(frame * 0.019) * 0.58,
+            -0.85 + Math.cos(frame * 0.013) * 0.34,
+          )
+          nodeC.position.set(
+            Math.sin(frame * 0.014) * 1.22,
+            1.15 + Math.cos(frame * 0.011) * 0.36,
+            -1.4 + Math.sin(frame * 0.012) * 0.3,
+          )
           group.position.y = Math.sin(frame * 0.014) * 0.05
+          group.rotation.x += (pointerY - group.rotation.x) * 0.035
+          group.rotation.y += (pointerX - group.rotation.y) * 0.035
         }
 
         renderer.render(scene, camera)
@@ -2023,11 +2169,21 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
         scheduleRender()
       }
 
+      function handlePointerMove(event: PointerEvent) {
+        if (reduceMotion) {
+          return
+        }
+
+        pointerX = ((event.clientX / window.innerWidth) - 0.5) * 0.18
+        pointerY = ((event.clientY / window.innerHeight) - 0.5) * -0.14
+      }
+
       resizeNow()
       renderFrame()
       scheduleRender()
       canvas.dataset.ready = 'true'
       window.addEventListener('resize', resize)
+      window.addEventListener('pointermove', handlePointerMove, { passive: true })
       document.addEventListener('visibilitychange', handleVisibilityChange)
       mediaQuery.addEventListener('change', handleMotionChange)
 
@@ -2035,6 +2191,7 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
         delete canvas.dataset.ready
         sceneControllerRef.current = null
         window.removeEventListener('resize', resize)
+        window.removeEventListener('pointermove', handlePointerMove)
         document.removeEventListener('visibilitychange', handleVisibilityChange)
         mediaQuery.removeEventListener('change', handleMotionChange)
         cancelRenderLoop()
@@ -2043,10 +2200,13 @@ function AmbientScene({ activeSection }: { activeSection: SectionKey }) {
         }
         knotGeometry.dispose()
         ringGeometry.dispose()
+        nodeGeometry.dispose()
         planeGeometry.dispose()
         pointGeometry.dispose()
         knotMaterial.dispose()
         ringMaterial.dispose()
+        primaryNodeMaterial.dispose()
+        secondaryNodeMaterial.dispose()
         planeMaterial.dispose()
         pointMaterial.dispose()
         renderer.dispose()
@@ -2626,6 +2786,65 @@ function NightReminder({ onClose }: { onClose: () => void }) {
         <X size={16} />
       </button>
     </aside>
+  )
+}
+
+function LegalCenter() {
+  return (
+    <section className="legal-center" aria-labelledby="legal-center-title">
+      <div className="legal-intro">
+        <div className="legal-orbit" aria-hidden="true">
+          <ShieldCheck size={28} />
+        </div>
+        <div>
+          <p className="eyebrow">Trasparenza</p>
+          <h3 id="legal-center-title">Documenti legali in chiaro</h3>
+          <p>
+            Bozza operativa per utenti finali e per il titolare del progetto.
+            Prima del lancio pubblico va validata da un professionista legale o
+            privacy.
+          </p>
+        </div>
+      </div>
+
+      <div className="legal-grid">
+        {LEGAL_SECTIONS.map(({ eyebrow, title, Icon, summary, items }) => (
+          <article className="legal-card" key={title}>
+            <div className="legal-card-head">
+              <span aria-hidden="true">
+                <Icon size={21} />
+              </span>
+              <div>
+                <p className="eyebrow">{eyebrow}</p>
+                <h3>{title}</h3>
+              </div>
+            </div>
+            <p>{summary}</p>
+            <ul>
+              {items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </div>
+
+      <section className="owner-checklist" aria-labelledby="owner-checklist-title">
+        <div>
+          <p className="eyebrow">Per te</p>
+          <h3 id="owner-checklist-title">Come renderla ufficiale e tua</h3>
+          <p>
+            Questi sono i passaggi pratici da chiudere prima di presentarla come
+            app pubblica e sotto il tuo controllo.
+          </p>
+        </div>
+        <ol>
+          {OFFICIAL_CHECKLIST.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ol>
+      </section>
+    </section>
   )
 }
 
