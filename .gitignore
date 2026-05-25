@@ -28,3 +28,4 @@ output
 *.sln
 *.sw?
 .vercel
+supabase/.temp/
