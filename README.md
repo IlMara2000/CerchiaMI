@@ -38,7 +38,7 @@ email.
   chiave hash IP + giorno e salvato nel browser per non ripeterlo nella stessa
   giornata.
 - Conferma 18+, consenso e comportamento rispettoso.
-- Tre sezioni: lavoro/amicizia, relazione, notte piccante.
+- Tre sezioni: amicizia, relazione, chimica 18+.
 - Profili, filtri, interessi, match e chat.
 - Creazione e copia di nuovi codici invito.
 - Profilo personale modificabile.

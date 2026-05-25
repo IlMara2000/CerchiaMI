@@ -18,7 +18,7 @@ export default async function handler(request, response) {
   if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) {
     response.status(501).json({
       error:
-        'Account hard delete not configured. Add SUPABASE_SERVICE_ROLE_KEY on Vercel.',
+        'La cancellazione account non e disponibile in questo momento.',
     })
     return
   }

@@ -1015,7 +1015,7 @@ function App() {
             (block) => block.blocked_profile,
           )
         } catch (error) {
-          console.warn('Supabase safety tables unavailable.', error)
+          void error
         }
 
         const matchIds = matchRows.map((match) => match.id)
@@ -1660,10 +1660,10 @@ function App() {
         setNotice(`Segnalazione inviata per ${target.name}.`)
       } catch (error) {
         console.warn('Report not stored in Supabase.', error)
-        setNotice('Segnalazione non salvata online: applica lo schema Supabase.')
+        setNotice('Segnalazione non inviata. Riprova tra poco.')
       }
     } else {
-      setNotice('Segnalazione preparata: serve un profilo Supabase reale.')
+      setNotice('Segnalazione disponibile dopo aver completato il profilo.')
     }
 
     setReportTarget(null)
