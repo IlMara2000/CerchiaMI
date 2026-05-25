@@ -1,0 +1,15 @@
+{
+  "name": "CerchiaMi",
+  "short_name": "CerchiaMi",
+  "icons": [
+    {
+      "src": "/favicon.svg?v=20260526",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "theme_color": "#172320",
+  "background_color": "#fbfdfb",
+  "display": "standalone"
+}

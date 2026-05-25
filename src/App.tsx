@@ -220,7 +220,7 @@ type RemoteBlockRow = {
 const PROFILE_SELECT =
   'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility'
 
-const BRAND_MARK_SRC = '/favicon.svg?v=20260516'
+const BRAND_MARK_SRC = '/favicon.svg?v=20260526'
 const LEGAL_UPDATED_AT = '21 maggio 2026'
 const LEGAL_DOCUMENT_VERSION = 'cerchiami-legal-2026-05-21'
 
