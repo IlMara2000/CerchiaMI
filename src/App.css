@@ -1913,7 +1913,10 @@ select:focus {
   display: grid;
   min-height: 100svh;
   place-items: center;
+  --text: #172320;
+  --muted: #5f706c;
   padding: 24px;
+  color: #172320;
   background:
     radial-gradient(circle at 50% 35%, rgba(255, 83, 72, 0.08), transparent 34%),
     linear-gradient(180deg, #ffffff 0%, #f2f7f4 100%);
@@ -1953,11 +1956,15 @@ select:focus {
 }
 
 .launch-wordmark {
-  color: var(--text);
+  color: #172320;
   font-size: clamp(2.7rem, 12vw, 5.2rem);
   font-weight: 850;
   line-height: 0.95;
   transform-origin: center;
+}
+
+.launch-wordmark span:first-child {
+  color: #172320;
 }
 
 .launch-hint {
