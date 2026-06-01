@@ -683,12 +683,63 @@ select:focus {
   font-weight: 820;
 }
 
-.toggle-pill input,
-.check-row input {
+.toggle-pill input {
   width: 18px;
   height: 18px;
   flex: 0 0 auto;
   accent-color: #172320;
+}
+
+.check-row input {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  flex: 0 0 auto;
+  margin-top: 2px;
+  border: 1.5px solid rgba(20, 32, 31, 0.24);
+  border-radius: 5px;
+  background: #ffffff;
+  box-shadow: none;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    border-color var(--motion-fast) ease,
+    transform var(--motion-fast) var(--ease-spring);
+}
+
+.check-row input::after {
+  width: 5px;
+  height: 10px;
+  margin-top: -2px;
+  border: solid #172320;
+  border-width: 0 2px 2px 0;
+  content: "";
+  opacity: 0;
+  transform: rotate(45deg) scale(0.45);
+  transition:
+    opacity var(--motion-fast) ease,
+    transform var(--motion-fast) var(--ease-spring);
+}
+
+.check-row input:checked {
+  border-color: rgba(20, 32, 31, 0.24);
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.check-row input:checked::after {
+  opacity: 1;
+  transform: rotate(45deg) scale(1);
+}
+
+.check-row input:focus {
+  border-color: rgba(20, 32, 31, 0.34);
+  box-shadow: 0 0 0 3px rgba(20, 32, 31, 0.05);
+}
+
+.check-row input:active {
+  transform: scale(0.94);
 }
 
 .profile-grid {
