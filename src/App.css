@@ -32,6 +32,13 @@
   animation: screen-rise var(--motion-slow) var(--ease-out) both;
 }
 
+.app-shell.theme-dark {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(8, 126, 117, 0.18), transparent 28%),
+    radial-gradient(circle at 92% 10%, color-mix(in srgb, var(--section-accent) 24%, transparent), transparent 32%),
+    linear-gradient(180deg, #08110f 0%, #101816 54%, #07100e 100%);
+}
+
 .app-shell.section-relationship {
   --section-accent: var(--relationship);
   --section-soft: #fff0f3;
@@ -252,7 +259,7 @@ h3 {
   z-index: 11;
   display: grid;
   order: 3;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-bottom: 14px;
   padding: 8px;
@@ -263,7 +270,14 @@ h3 {
   backdrop-filter: blur(18px);
 }
 
-.desktop-nav button {
+.settings-nav-item {
+  position: relative;
+  display: grid;
+  min-width: 0;
+}
+
+.desktop-nav > button,
+.desktop-nav .settings-trigger {
   position: relative;
   display: inline-flex;
   min-width: 0;
@@ -283,16 +297,20 @@ h3 {
     transform var(--motion-fast) ease;
 }
 
-.desktop-nav button span,
-.bottom-nav button span {
+.desktop-nav > button span,
+.desktop-nav .settings-trigger span,
+.bottom-nav > button span,
+.bottom-nav .settings-trigger span {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.desktop-nav button::after,
-.bottom-nav button::after {
+.desktop-nav > button::after,
+.desktop-nav .settings-trigger::after,
+.bottom-nav > button::after,
+.bottom-nav .settings-trigger::after {
   position: absolute;
   inset: auto 18px 6px;
   height: 3px;
@@ -306,37 +324,89 @@ h3 {
     transform var(--motion-fast) ease;
 }
 
-.desktop-nav button:hover {
+.desktop-nav > button:hover,
+.desktop-nav .settings-trigger:hover {
   color: var(--text);
   background: #f3f7f5;
   transform: translateY(-1px);
 }
 
-.desktop-nav button.is-active {
+.desktop-nav > button.is-active,
+.desktop-nav .settings-trigger.is-active {
   color: #ffffff;
   background: var(--section-accent);
   box-shadow: 0 14px 28px color-mix(in srgb, var(--section-accent) 24%, transparent);
 }
 
 .section-network .section-rail button.is-active,
-.section-network .desktop-nav button.is-active {
+.section-network .desktop-nav > button.is-active,
+.section-network .desktop-nav .settings-trigger.is-active {
   background: var(--network);
 }
 
 .section-relationship .section-rail button.is-active,
-.section-relationship .desktop-nav button.is-active {
+.section-relationship .desktop-nav > button.is-active,
+.section-relationship .desktop-nav .settings-trigger.is-active {
   background: var(--relationship);
 }
 
 .section-night .section-rail button.is-active,
-.section-night .desktop-nav button.is-active {
+.section-night .desktop-nav > button.is-active,
+.section-night .desktop-nav .settings-trigger.is-active {
   background: var(--night);
 }
 
-.desktop-nav button.is-active::after,
-.bottom-nav button.is-active::after {
+.desktop-nav > button.is-active::after,
+.desktop-nav .settings-trigger.is-active::after,
+.bottom-nav > button.is-active::after,
+.bottom-nav .settings-trigger.is-active::after {
   opacity: 0.92;
   transform: scaleX(1);
+}
+
+.settings-menu {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 24;
+  display: grid;
+  width: min(280px, 78vw);
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(20, 32, 31, 0.1);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(20, 32, 31, 0.16);
+  backdrop-filter: blur(18px);
+  animation: menu-enter 180ms var(--ease-out) both;
+}
+
+.settings-menu button {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 0 12px;
+  border-radius: 7px;
+  color: var(--text);
+  background: transparent;
+  font-size: 0.87rem;
+  font-weight: 820;
+  text-align: left;
+}
+
+.settings-menu button::after {
+  display: none;
+}
+
+.settings-menu button:hover {
+  background: #f3f7f5;
+}
+
+.settings-menu button.is-active {
+  color: #ffffff;
+  background: var(--section-accent);
 }
 
 .notice {
@@ -1125,6 +1195,112 @@ select:focus {
   animation: content-rise var(--motion-medium) var(--ease-out) both;
 }
 
+.personalization-panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(20, 32, 31, 0.1);
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle at 92% 0%, var(--section-wash), transparent 34%),
+    rgba(255, 255, 255, 0.94);
+  box-shadow: 0 14px 38px rgba(20, 32, 31, 0.07);
+  animation: content-rise var(--motion-medium) var(--ease-out) both;
+}
+
+.personalization-head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.personalization-head h3 {
+  margin-top: 4px;
+}
+
+.personalization-head p:not(.eyebrow) {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.theme-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.theme-options button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 92px;
+  padding: 14px;
+  border: 1px solid rgba(20, 32, 31, 0.1);
+  border-radius: var(--radius);
+  color: var(--text);
+  background: #ffffff;
+  text-align: left;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.theme-options button:hover {
+  border-color: color-mix(in srgb, var(--section-accent) 40%, rgba(20, 32, 31, 0.1));
+  box-shadow: 0 16px 34px rgba(20, 32, 31, 0.09);
+  transform: translateY(-2px);
+}
+
+.theme-options button.is-active {
+  color: #ffffff;
+  border-color: transparent;
+  background: var(--section-accent);
+  box-shadow: 0 18px 38px color-mix(in srgb, var(--section-accent) 24%, transparent);
+}
+
+.theme-options span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.theme-options strong,
+.theme-options small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.theme-options small {
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.theme-options button.is-active small {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.theme-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 68px;
+  padding: 14px 16px;
+  border: 1px solid rgba(20, 32, 31, 0.1);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, #ffffff 0%, var(--section-soft) 100%);
+}
+
+.theme-preview span {
+  color: var(--muted);
+  font-size: 0.84rem;
+  font-weight: 780;
+}
+
 .public-legal-shell {
   display: grid;
   min-height: 100svh;
@@ -1570,7 +1746,7 @@ select:focus {
   display: none;
   order: 3;
   width: calc(100% - 16px);
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   margin: 0 auto;
   padding: 7px;
@@ -1581,7 +1757,8 @@ select:focus {
   backdrop-filter: blur(18px);
 }
 
-.bottom-nav button {
+.bottom-nav > button,
+.bottom-nav .settings-trigger {
   position: relative;
   display: grid;
   min-width: 0;
@@ -1600,14 +1777,136 @@ select:focus {
     transform var(--motion-fast) ease;
 }
 
-.bottom-nav button.is-active {
+.bottom-nav > button.is-active,
+.bottom-nav .settings-trigger.is-active {
   color: #ffffff;
   background: #172320;
   transform: translateY(-1px);
 }
 
-.bottom-nav button::after {
+.bottom-nav > button::after,
+.bottom-nav .settings-trigger::after {
   display: none;
+}
+
+.bottom-nav .settings-nav-item {
+  position: static;
+}
+
+.bottom-nav .settings-menu {
+  position: fixed;
+  inset: auto 12px 82px auto;
+  width: min(300px, calc(100vw - 24px));
+}
+
+.theme-dark .app-topbar,
+.theme-dark .section-rail button,
+.theme-dark .desktop-nav,
+.theme-dark .bottom-nav,
+.theme-dark .settings-menu,
+.theme-dark .daily-hero,
+.theme-dark .filters,
+.theme-dark .empty-state,
+.theme-dark .invite-manager,
+.theme-dark .profile-editor,
+.theme-dark .match-list,
+.theme-dark .chat-panel,
+.theme-dark .legal-intro,
+.theme-dark .legal-card,
+.theme-dark .personalization-panel {
+  border-color: rgba(229, 247, 241, 0.12);
+  background: rgba(13, 24, 21, 0.88);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.22);
+}
+
+.theme-dark .daily-hero,
+.theme-dark .personalization-panel {
+  background:
+    radial-gradient(circle at 78% 18%, color-mix(in srgb, var(--section-accent) 22%, transparent), transparent 32%),
+    linear-gradient(135deg, rgba(16, 30, 26, 0.96), rgba(10, 18, 16, 0.94));
+}
+
+.theme-dark .section-rail button,
+.theme-dark .desktop-nav > button,
+.theme-dark .desktop-nav .settings-trigger,
+.theme-dark .bottom-nav > button,
+.theme-dark .bottom-nav .settings-trigger,
+.theme-dark .settings-menu button,
+.theme-dark .ghost-button,
+.theme-dark .theme-options button,
+.theme-dark .mood-chips button,
+.theme-dark .icon-button,
+.theme-dark .icon-action {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(229, 247, 241, 0.12);
+}
+
+.theme-dark .desktop-nav > button:hover,
+.theme-dark .desktop-nav .settings-trigger:hover,
+.theme-dark .settings-menu button:hover,
+.theme-dark .section-rail button:hover,
+.theme-dark .theme-options button:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme-dark .quick-stats div,
+.theme-dark .legal-hero-summary span,
+.theme-dark .theme-preview,
+.theme-dark .search-field,
+.theme-dark .distance-field,
+.theme-dark .age-field,
+.theme-dark .invite-create,
+.theme-dark .messages,
+.theme-dark .empty-avatar {
+  border-color: rgba(229, 247, 241, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.theme-dark input,
+.theme-dark textarea,
+.theme-dark select {
+  color: var(--text);
+  border-color: rgba(229, 247, 241, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: rgba(229, 247, 241, 0.48);
+}
+
+.theme-dark .message-bubble {
+  color: var(--text);
+  border-color: rgba(229, 247, 241, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.theme-dark .message-bubble.is-mine,
+.theme-dark .primary-button,
+.theme-dark .like-action,
+.theme-dark .send-button {
+  color: #ffffff;
+  background: var(--section-accent);
+}
+
+.theme-dark .legal-orbit,
+.theme-dark .legal-card-head span,
+.theme-dark .empty-orbit {
+  color: var(--text);
+  background:
+    linear-gradient(#101b18, #101b18) padding-box,
+    conic-gradient(from 150deg, #23d0b0, #ff5348, #5c54d8, #23d0b0) border-box;
+}
+
+.theme-dark .settings-menu button.is-active,
+.theme-dark .theme-options button.is-active,
+.theme-dark .desktop-nav > button.is-active,
+.theme-dark .desktop-nav .settings-trigger.is-active {
+  color: #ffffff;
+  border-color: transparent;
+  background: var(--section-accent);
 }
 
 .launch-shell {
@@ -2046,6 +2345,18 @@ select:focus {
   }
 }
 
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes content-rise {
   from {
     opacity: 0;
@@ -2204,7 +2515,7 @@ select:focus {
     position: sticky;
     top: 8px;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 4px;
     margin-bottom: 12px;
     padding: 6px;
@@ -2261,6 +2572,10 @@ select:focus {
 
   .topbar-actions .icon-button {
     background: #ffffff;
+  }
+
+  .theme-dark .topbar-actions .icon-button {
+    background: rgba(255, 255, 255, 0.05);
   }
 
   .section-rail {
@@ -2342,8 +2657,18 @@ select:focus {
 
   .profile-grid,
   .form-grid,
-  .auth-shell {
+  .auth-shell,
+  .theme-options {
     grid-template-columns: 1fr;
+  }
+
+  .personalization-panel,
+  .personalization-head {
+    grid-template-columns: 1fr;
+  }
+
+  .theme-options button {
+    min-height: 78px;
   }
 
   .filters {
@@ -2374,7 +2699,8 @@ select:focus {
     width: 94px;
   }
 
-  .desktop-nav button {
+  .desktop-nav > button,
+  .desktop-nav .settings-trigger {
     min-height: 48px;
     flex-direction: column;
     gap: 3px;
@@ -2383,21 +2709,37 @@ select:focus {
     line-height: 1.05;
   }
 
-  .desktop-nav button svg {
+  .desktop-nav > button svg,
+  .desktop-nav .settings-trigger svg {
     width: 16px;
     height: 16px;
   }
 
-  .desktop-nav button span {
+  .desktop-nav > button span,
+  .desktop-nav .settings-trigger span {
     display: -webkit-box;
     white-space: normal;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
   }
 
-  .desktop-nav button::after {
+  .desktop-nav > button::after,
+  .desktop-nav .settings-trigger::after {
     inset: auto 10px 4px;
     height: 2px;
+  }
+
+  .desktop-nav .settings-menu {
+    right: 0;
+    width: min(300px, calc(100vw - 20px));
+  }
+
+  .desktop-nav .settings-menu button {
+    min-height: 46px;
+    flex-direction: row;
+    justify-content: flex-start;
+    font-size: 0.86rem;
+    line-height: 1.15;
   }
 
   .profile-card {
@@ -2619,7 +2961,8 @@ select:focus {
     display: none;
   }
 
-  .desktop-nav button {
+  .desktop-nav > button,
+  .desktop-nav .settings-trigger {
     min-height: 46px;
     font-size: 0.57rem;
   }

@@ -16,12 +16,17 @@ import {
   LogOut,
   MapPin,
   MessageCircle,
+  Monitor,
+  Moon,
+  Palette,
   Plus,
   Search,
   Send,
+  Settings,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  Sun,
   Trash2,
   User,
   Users,
@@ -31,7 +36,15 @@ import { supabase } from './lib/supabase'
 import './App.css'
 
 type SectionKey = 'network' | 'relationship' | 'night'
-type ViewKey = 'discover' | 'matches' | 'invites' | 'profile' | 'legal'
+type ViewKey =
+  | 'discover'
+  | 'matches'
+  | 'invites'
+  | 'profile'
+  | 'legal'
+  | 'customize'
+type ThemeMode = 'light' | 'dark' | 'system'
+type ResolvedTheme = 'light' | 'dark'
 type PublicLegalKey = 'terms' | 'privacy' | 'cookie' | 'safety'
 type ProfileSource = 'remote'
 
@@ -261,9 +274,39 @@ const AMBIENT_PALETTES: Record<
 const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'discover', label: 'Scopri', Icon: Search },
   { key: 'matches', label: 'Match', Icon: Heart },
+]
+
+const SETTINGS_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'invites', label: 'Inviti', Icon: KeyRound },
   { key: 'profile', label: 'Profilo', Icon: User },
   { key: 'legal', label: 'Termini e privacy', Icon: ShieldCheck },
+  { key: 'customize', label: 'Personalizzazione', Icon: Palette },
+]
+
+const THEME_OPTIONS: {
+  value: ThemeMode
+  label: string
+  detail: string
+  Icon: LucideIcon
+}[] = [
+  {
+    value: 'system',
+    label: 'Dispositivo',
+    detail: 'Segue automaticamente le impostazioni del browser.',
+    Icon: Monitor,
+  },
+  {
+    value: 'light',
+    label: 'Chiaro',
+    detail: 'Interfaccia luminosa e pulita.',
+    Icon: Sun,
+  },
+  {
+    value: 'dark',
+    label: 'Scuro',
+    detail: 'Contrasto alto, ideale di sera.',
+    Icon: Moon,
+  },
 ]
 
 const RELATIONSHIP_GOALS = [
@@ -514,6 +557,7 @@ const STORAGE = {
   matches: 'cerchiami.matches',
   messages: 'cerchiami.messages',
   nightAccepted: 'cerchiami.nightAccepted',
+  theme: 'cerchiami.theme',
 }
 
 function readStored<T>(key: string, fallback: T): T {
@@ -533,6 +577,16 @@ function useStoredState<T>(key: string, fallback: T) {
   }, [key, value])
 
   return [value, setValue] as const
+}
+
+function resolveThemeMode(mode: ThemeMode): ResolvedTheme {
+  if (mode === 'light' || mode === 'dark') {
+    return mode
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches
+    ? 'dark'
+    : 'light'
 }
 
 function nowTime(date = new Date()) {
@@ -891,6 +945,10 @@ function App() {
     STORAGE.nightAccepted,
     false,
   )
+  const [themeMode, setThemeMode] = useStoredState<ThemeMode>(
+    STORAGE.theme,
+    'system',
+  )
 
   const [remoteState, setRemoteState] =
     useState<RemoteState>(REMOTE_STATE_EMPTY)
@@ -901,6 +959,10 @@ function App() {
   const [onboardingUserId, setOnboardingUserId] = useState<string | null>(null)
   const [activeSection, setActiveSection] = useState<SectionKey>('network')
   const [activeView, setActiveView] = useState<ViewKey>('discover')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() =>
+    resolveThemeMode(themeMode),
+  )
   const [query, setQuery] = useState('')
   const [maxDistance, setMaxDistance] = useState(25)
   const [minAge, setMinAge] = useState(24)
@@ -1166,6 +1228,40 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!THEME_OPTIONS.some((option) => option.value === themeMode)) {
+      setThemeMode('system')
+      return
+    }
+
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const syncTheme = () => {
+      setResolvedTheme(
+        themeMode === 'system' ? resolveThemeMode('system') : themeMode,
+      )
+    }
+
+    syncTheme()
+
+    if (themeMode !== 'system') {
+      return
+    }
+
+    mediaQuery.addEventListener('change', syncTheme)
+
+    return () => {
+      mediaQuery.removeEventListener('change', syncTheme)
+    }
+  }, [setThemeMode, themeMode])
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolvedTheme
+
+    return () => {
+      delete document.documentElement.dataset.theme
+    }
+  }, [resolvedTheme])
+
+  useEffect(() => {
     const isLegacyDemoId = (id: string) => LEGACY_DEMO_PROFILE_IDS.includes(id)
 
     setLikedIds((current) => current.filter((id) => !isLegacyDemoId(id)))
@@ -1302,6 +1398,10 @@ function App() {
     legal: {
       title: 'Termini e privacy',
       body: 'Regole, privacy, sicurezza e consenso spiegati in modo chiaro.',
+    },
+    customize: {
+      title: 'Personalizzazione',
+      body: 'Scegli il tema visivo e rendi CerchiaMi piu comoda per il tuo modo di usarla.',
     },
   }
 
@@ -1947,7 +2047,7 @@ function App() {
   }
 
   return (
-    <main className={`app-shell section-${activeSection}`}>
+    <main className={`app-shell section-${activeSection} theme-${resolvedTheme}`}>
       <AmbientScene activeSection={activeSection} />
 
       {notice && (
@@ -1995,6 +2095,7 @@ function App() {
             onClick={() => {
               setActiveSection(key)
               setActiveView('discover')
+              setSettingsOpen(false)
               if (key === 'night') {
                 showTemporaryNightReminder()
               }
@@ -2010,6 +2111,8 @@ function App() {
         className="desktop-nav"
         activeView={activeView}
         setActiveView={setActiveView}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpen}
       />
 
       {activeView === 'discover' && (
@@ -2216,6 +2319,14 @@ function App() {
           )}
 
           {activeView === 'legal' && <LegalCenter />}
+
+          {activeView === 'customize' && (
+            <PersonalizationPanel
+              themeMode={themeMode}
+              setThemeMode={setThemeMode}
+              resolvedTheme={resolvedTheme}
+            />
+          )}
         </section>
       </div>
 
@@ -2223,6 +2334,8 @@ function App() {
         className="bottom-nav"
         activeView={activeView}
         setActiveView={setActiveView}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpen}
       />
 
       {showDisclaimer && <DisclaimerModal onAccept={acceptDisclaimer} />}
@@ -2321,26 +2434,122 @@ function BrandMark({ className }: { className: string }) {
 function PrimaryNav({
   activeView,
   setActiveView,
+  settingsOpen,
+  setSettingsOpen,
   className,
 }: {
   activeView: ViewKey
   setActiveView: Dispatch<SetStateAction<ViewKey>>
+  settingsOpen: boolean
+  setSettingsOpen: Dispatch<SetStateAction<boolean>>
   className: string
 }) {
+  const settingsActive = SETTINGS_NAV_ITEMS.some(
+    (item) => item.key === activeView,
+  )
+
+  const openView = (key: ViewKey) => {
+    setActiveView(key)
+    setSettingsOpen(false)
+  }
+
   return (
-    <nav className={className} aria-label="Navigazione principale">
+    <nav className={`${className} primary-nav`} aria-label="Navigazione principale">
       {PRIMARY_NAV_ITEMS.map(({ key, label, Icon }) => (
         <button
           type="button"
           key={key}
           className={activeView === key ? 'is-active' : ''}
-          onClick={() => setActiveView(key)}
+          onClick={() => openView(key)}
         >
           <Icon size={19} />
           <span>{label}</span>
         </button>
       ))}
+
+      <div className="settings-nav-item">
+        <button
+          type="button"
+          className={`settings-trigger ${settingsActive ? 'is-active' : ''}`}
+          onClick={() => setSettingsOpen((current) => !current)}
+          aria-expanded={settingsOpen}
+          aria-haspopup="menu"
+        >
+          <Settings size={19} />
+          <span>Impostazioni</span>
+        </button>
+
+        {settingsOpen && (
+          <div className="settings-menu" role="menu">
+            {SETTINGS_NAV_ITEMS.map(({ key, label, Icon }) => (
+              <button
+                type="button"
+                key={key}
+                className={activeView === key ? 'is-active' : ''}
+                onClick={() => openView(key)}
+                role="menuitem"
+              >
+                <Icon size={18} />
+                <span>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </nav>
+  )
+}
+
+function PersonalizationPanel({
+  themeMode,
+  setThemeMode,
+  resolvedTheme,
+}: {
+  themeMode: ThemeMode
+  setThemeMode: Dispatch<SetStateAction<ThemeMode>>
+  resolvedTheme: ResolvedTheme
+}) {
+  return (
+    <section className="personalization-panel" aria-labelledby="customize-title">
+      <div className="personalization-head">
+        <div className="legal-orbit" aria-hidden="true">
+          <Palette size={28} />
+        </div>
+        <div>
+          <p className="eyebrow">Tema</p>
+          <h3 id="customize-title">Aspetto dell'app</h3>
+          <p>
+            Imposta CerchiaMi su chiaro, scuro oppure lascia che segua il tema
+            del dispositivo.
+          </p>
+        </div>
+      </div>
+
+      <div className="theme-options" role="radiogroup" aria-label="Tema app">
+        {THEME_OPTIONS.map(({ value, label, detail, Icon }) => (
+          <button
+            type="button"
+            key={value}
+            className={themeMode === value ? 'is-active' : ''}
+            onClick={() => setThemeMode(value)}
+            role="radio"
+            aria-checked={themeMode === value}
+          >
+            <Icon size={21} />
+            <span>
+              <strong>{label}</strong>
+              <small>{detail}</small>
+            </span>
+            {themeMode === value && <Check size={18} aria-hidden="true" />}
+          </button>
+        ))}
+      </div>
+
+      <div className="theme-preview" aria-label="Anteprima tema">
+        <span>Anteprima</span>
+        <strong>{resolvedTheme === 'dark' ? 'Tema scuro' : 'Tema chiaro'}</strong>
+      </div>
+    </section>
   )
 }
 

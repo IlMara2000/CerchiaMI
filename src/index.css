@@ -41,6 +41,20 @@ html {
   background: var(--bg);
 }
 
+:root[data-theme="dark"] {
+  --bg: #07100e;
+  --surface: #101b18;
+  --surface-strong: #14231f;
+  --text: #edf7f4;
+  --muted: #a5bbb5;
+  --faint: #78918b;
+  --border: rgba(229, 247, 241, 0.14);
+  --border-strong: rgba(229, 247, 241, 0.24);
+  --ink: #edf7f4;
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.34);
+  color-scheme: dark;
+}
+
 body {
   min-width: 320px;
   min-height: 100svh;
