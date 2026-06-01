@@ -691,55 +691,70 @@ select:focus {
 }
 
 .check-row input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.check-control {
   display: grid;
-  width: 20px;
-  height: 20px;
+  width: 28px;
+  height: 28px;
   place-items: center;
   flex: 0 0 auto;
-  margin-top: 2px;
-  border: 1.5px solid rgba(20, 32, 31, 0.24);
-  border-radius: 5px;
-  background: #ffffff;
-  box-shadow: none;
-  appearance: none;
-  -webkit-appearance: none;
+  border: 1px solid rgba(20, 32, 31, 0.14);
+  border-radius: 8px;
+  color: #172320;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 250, 248, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 8px 18px rgba(20, 32, 31, 0.06);
   transition:
     border-color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
     transform var(--motion-fast) var(--ease-spring);
 }
 
-.check-row input::after {
-  width: 5px;
-  height: 10px;
-  margin-top: -2px;
-  border: solid #172320;
-  border-width: 0 2px 2px 0;
-  content: "";
+.check-control svg {
   opacity: 0;
-  transform: rotate(45deg) scale(0.45);
+  stroke-width: 3;
+  transform: scale(0.58) rotate(-10deg);
   transition:
     opacity var(--motion-fast) ease,
     transform var(--motion-fast) var(--ease-spring);
 }
 
-.check-row input:checked {
-  border-color: rgba(20, 32, 31, 0.24);
+.check-row input:checked + .check-control {
+  border-color: rgba(20, 32, 31, 0.18);
   background: #ffffff;
-  box-shadow: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 10px 24px rgba(20, 32, 31, 0.08);
+  transform: translateY(-1px);
 }
 
-.check-row input:checked::after {
+.check-row input:checked + .check-control svg {
   opacity: 1;
-  transform: rotate(45deg) scale(1);
+  transform: scale(1) rotate(0deg);
 }
 
-.check-row input:focus {
-  border-color: rgba(20, 32, 31, 0.34);
-  box-shadow: 0 0 0 3px rgba(20, 32, 31, 0.05);
+.check-row input:focus-visible + .check-control {
+  border-color: rgba(20, 32, 31, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 4px rgba(20, 32, 31, 0.06);
 }
 
-.check-row input:active {
+.check-row input:active + .check-control {
   transform: scale(0.94);
+}
+
+.check-copy {
+  align-self: center;
 }
 
 .profile-grid {
@@ -2130,8 +2145,11 @@ select:focus {
 }
 
 .check-row {
+  position: relative;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: start;
+  gap: 10px;
+  cursor: pointer;
 }
 
 .form-error {

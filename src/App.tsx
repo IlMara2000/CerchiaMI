@@ -2969,7 +2969,10 @@ function EmailAccess({
               checked={accepted}
               onChange={(event) => setAccepted(event.target.checked)}
             />
-            <span>
+            <span className="check-control" aria-hidden="true">
+              <Check size={15} />
+            </span>
+            <span className="check-copy">
               Confermo maggiore eta e accetto Termini, Privacy e regole di
               sicurezza.
             </span>
@@ -3339,7 +3342,10 @@ function OnboardingFlow({
                   checked={draft.accepted}
                   onChange={(event) => updateDraft('accepted', event.target.checked)}
                 />
-                <span>
+                <span className="check-control" aria-hidden="true">
+                  <Check size={15} />
+                </span>
+                <span className="check-copy">
                   Confermo maggiore eta, consenso e comportamento rispettoso.
                 </span>
               </label>
