@@ -1371,7 +1371,11 @@ select:focus {
   display: grid;
   min-height: 100svh;
   gap: 14px;
+  --text: #172320;
+  --muted: #536662;
+  --faint: #78918b;
   padding: 18px;
+  color: #172320;
   background:
     linear-gradient(180deg, #fbfdfb 0%, #f2f7f4 52%, #f8f5fb 100%),
     var(--bg);
@@ -1403,9 +1407,28 @@ select:focus {
 }
 
 .public-brand .wordmark {
-  color: var(--text);
+  color: #172320;
   font-size: 1.35rem;
   line-height: 1;
+}
+
+.public-brand .wordmark span:first-child {
+  color: #172320;
+}
+
+.public-legal-shell h1,
+.public-legal-shell h2,
+.public-legal-shell h3 {
+  color: #172320;
+}
+
+.public-legal-shell p,
+.public-legal-shell li {
+  color: #536662;
+}
+
+.public-legal-shell .eyebrow {
+  color: #6f8883;
 }
 
 .public-legal-nav {
