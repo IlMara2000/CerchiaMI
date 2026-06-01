@@ -2010,7 +2010,11 @@ select:focus {
   display: grid;
   grid-template-columns: minmax(320px, 500px) minmax(0, 1fr);
   gap: 18px;
+  --text: #172320;
+  --muted: #5f706c;
+  --faint: #9aa9a5;
   padding: 18px;
+  color: #172320;
   background:
     linear-gradient(180deg, #ffffff, rgba(242, 247, 244, 0.84)),
     var(--bg);
@@ -2031,7 +2035,12 @@ select:focus {
 }
 
 .auth-brand h1 {
+  color: #172320;
   font-size: clamp(2.25rem, 5vw, 4rem);
+}
+
+.auth-brand .wordmark span:first-child {
+  color: #172320;
 }
 
 .auth-form {
