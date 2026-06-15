@@ -8,8 +8,10 @@ import {
   Check,
   Clock,
   Copy,
+  ExternalLink,
   Flag,
   Flame,
+  Gamepad2,
   Heart,
   KeyRound,
   Lock,
@@ -24,6 +26,7 @@ import {
   Send,
   Settings,
   ShieldCheck,
+  ShoppingBag,
   SlidersHorizontal,
   Sparkles,
   Sun,
@@ -39,6 +42,7 @@ type SectionKey = 'network' | 'relationship' | 'night'
 type ViewKey =
   | 'discover'
   | 'matches'
+  | 'drops'
   | 'invites'
   | 'profile'
   | 'legal'
@@ -47,6 +51,7 @@ type ThemeMode = 'light' | 'dark' | 'system'
 type ResolvedTheme = 'light' | 'dark'
 type PublicLegalKey = 'terms' | 'privacy' | 'cookie' | 'safety'
 type ProfileSource = 'remote'
+type DropCategory = 'all' | 'manga' | 'cosplay' | 'gaming' | 'tattoo'
 
 type SectionMeta = {
   key: SectionKey
@@ -96,6 +101,19 @@ type Profile = {
   likedYou: boolean
   source: ProfileSource
   matchId?: string
+}
+
+type MarketplaceItem = {
+  id: string
+  title: string
+  subtitle: string
+  category: Exclude<DropCategory, 'all'>
+  price: string
+  source: string
+  image: string
+  imagePosition?: string
+  url: string
+  affiliate: boolean
 }
 
 type Session = {
@@ -234,23 +252,23 @@ const PROFILE_SELECT =
   'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility'
 
 const BRAND_MARK_SRC = '/favicon.svg?v=20260526'
-const LEGAL_UPDATED_AT = '21 maggio 2026'
-const LEGAL_DOCUMENT_VERSION = 'cerchiami-legal-2026-05-21'
+const LEGAL_UPDATED_AT = '15 giugno 2026'
+const LEGAL_DOCUMENT_VERSION = 'cerchiami-legal-2026-06-15'
 
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
     key: 'network',
     label: 'Amicizia',
-    title: 'Nuove amicizie senza pressione',
+    title: 'La tua prossima party',
     detail:
-      'Persone vicine, interessi in comune e un primo aggancio semplice.',
+      'Gaming, manga, cosplay e passioni vere da condividere senza pressione.',
     Icon: Users,
   },
   relationship: {
     key: 'relationship',
     label: 'Relazione',
-    title: 'Relazioni con intenzioni chiare',
-    detail: 'Meno ambiguita, piu contesto e tempi realistici prima di scriversi.',
+    title: 'Stesso linguaggio, intenzioni chiare',
+    detail: 'Conosci chi cerca una relazione e capisce davvero il tuo fandom.',
     Icon: Heart,
   },
   night: {
@@ -274,6 +292,7 @@ const AMBIENT_PALETTES: Record<
 const PRIMARY_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
   { key: 'discover', label: 'Scopri', Icon: Search },
   { key: 'matches', label: 'Match', Icon: Heart },
+  { key: 'drops', label: 'Drop', Icon: ShoppingBag },
 ]
 
 const SETTINGS_NAV_ITEMS: { key: ViewKey; label: string; Icon: LucideIcon }[] = [
@@ -316,6 +335,93 @@ const RELATIONSHIP_GOALS = [
   { value: 'casual', label: 'Chimica senza pressione' },
 ]
 
+const MARKETPLACE_CATEGORIES: {
+  key: DropCategory
+  label: string
+}[] = [
+  { key: 'all', label: 'Tutti' },
+  { key: 'manga', label: 'Manga & anime' },
+  { key: 'cosplay', label: 'Cosplay' },
+  { key: 'gaming', label: 'Gaming' },
+  { key: 'tattoo', label: 'Tattoo & art' },
+]
+
+const MARKETPLACE_IMAGE = '/media/nerd-drop-marketplace.webp'
+
+const DEFAULT_MARKETPLACE_ITEMS: MarketplaceItem[] = [
+  {
+    id: 'manga-starter',
+    title: 'Manga starter bundle',
+    subtitle: 'Volumi e graphic novel per iniziare una nuova serie.',
+    category: 'manga',
+    price: 'Scopri offerte',
+    source: 'eBay',
+    image: MARKETPLACE_IMAGE,
+    imagePosition: '12% center',
+    url:
+      (import.meta.env.VITE_AFFILIATE_MANGA_URL as string | undefined) ||
+      'https://www.ebay.it/sch/i.html?_nkw=manga+bundle',
+    affiliate: Boolean(import.meta.env.VITE_AFFILIATE_MANGA_URL),
+  },
+  {
+    id: 'cosplay-toolkit',
+    title: 'Cosplay maker kit',
+    subtitle: 'Strumenti e materiali per il prossimo progetto.',
+    category: 'cosplay',
+    price: 'Vedi il catalogo',
+    source: 'eBay',
+    image: MARKETPLACE_IMAGE,
+    imagePosition: '48% center',
+    url:
+      (import.meta.env.VITE_AFFILIATE_COSPLAY_URL as string | undefined) ||
+      'https://www.ebay.it/sch/i.html?_nkw=cosplay+craft+tools',
+    affiliate: Boolean(import.meta.env.VITE_AFFILIATE_COSPLAY_URL),
+  },
+  {
+    id: 'gaming-setup',
+    title: 'Gaming setup essentials',
+    subtitle: 'Controller, cuffie e accessori per sessioni co-op.',
+    category: 'gaming',
+    price: 'Confronta prezzi',
+    source: 'eBay',
+    image: MARKETPLACE_IMAGE,
+    imagePosition: '67% center',
+    url:
+      (import.meta.env.VITE_AFFILIATE_GAMING_URL as string | undefined) ||
+      'https://www.ebay.it/sch/i.html?_nkw=gaming+controller+headset',
+    affiliate: Boolean(import.meta.env.VITE_AFFILIATE_GAMING_URL),
+  },
+  {
+    id: 'tattoo-art-books',
+    title: 'Tattoo & art books',
+    subtitle: 'Reference, sketchbook e ispirazione per nuovi concept.',
+    category: 'tattoo',
+    price: 'Sfoglia la selezione',
+    source: 'eBay',
+    image: MARKETPLACE_IMAGE,
+    imagePosition: '91% center',
+    url:
+      (import.meta.env.VITE_AFFILIATE_TATTOO_URL as string | undefined) ||
+      'https://www.ebay.it/sch/i.html?_nkw=tattoo+art+book',
+    affiliate: Boolean(import.meta.env.VITE_AFFILIATE_TATTOO_URL),
+  },
+]
+
+const SPONSOR_CONFIG = import.meta.env.VITE_SPONSOR_URL
+  ? {
+      name:
+        (import.meta.env.VITE_SPONSOR_NAME as string | undefined) ||
+        'Partner CerchiaMi',
+      copy:
+        (import.meta.env.VITE_SPONSOR_COPY as string | undefined) ||
+        'Una selezione pensata per la community nerd.',
+      url: import.meta.env.VITE_SPONSOR_URL as string,
+      image:
+        (import.meta.env.VITE_SPONSOR_IMAGE as string | undefined) ||
+        MARKETPLACE_IMAGE,
+    }
+  : null
+
 const BASE_INVITES = ['CERCHIAMI-2026', 'PRIVATO-18', 'AMICI-001']
 
 const LEGAL_SECTIONS: LegalSection[] = [
@@ -330,7 +436,8 @@ const LEGAL_SECTIONS: LegalSection[] = [
       "L'account e personale: non cedere login, codici invito o identita ad altre persone.",
       'Sono vietati molestie, minacce, contenuti illegali, spam, truffe, profili falsi e pressioni sessuali o emotive.',
       'CerchiaMi puo limitare o sospendere account e contenuti quando serve a proteggere utenti, servizio o obblighi di legge.',
-      "Le funzionalita possono cambiare nel tempo; eventuali servizi a pagamento avranno prezzi e condizioni dedicate prima dell'attivazione.",
+      'Match, messaggi e funzioni necessarie per conoscere persone non richiedono acquisti nel marketplace.',
+      'I prodotti del marketplace sono venduti e gestiti dai siti partner: prezzi, disponibilita, pagamenti, spedizioni e resi dipendono dal venditore esterno.',
     ],
   },
   {
@@ -342,6 +449,7 @@ const LEGAL_SECTIONS: LegalSection[] = [
     items: [
       'Dati trattati: email, profilo, eta, citta, interessi, preferenze, sezioni scelte, match, messaggi, inviti, log tecnici, indirizzo IP e consensi.',
       'Finalita: creare account, mostrare profili compatibili, gestire inviti e chat, prevenire abusi, mantenere sicurezza e rispettare obblighi legali.',
+      'I click sui prodotti possono essere registrati per misurare il funzionamento del marketplace, senza usare messaggi privati o preferenze intime per la pubblicita.',
       'I dati personali non vanno condivisi con leggerezza: scegli sempre cosa mostrare e cosa tenere privato.',
       'Puoi chiedere accesso, rettifica, cancellazione, portabilita, limitazione, opposizione e revoca dei consensi quando applicabile.',
     ],
@@ -373,6 +481,19 @@ const LEGAL_SECTIONS: LegalSection[] = [
       'I consensi importanti vengono registrati per dimostrare quando sono stati accettati.',
     ],
   },
+  {
+    eyebrow: 'Marketplace',
+    title: 'Affiliazioni e sponsor',
+    Icon: ShoppingBag,
+    summary:
+      "CerchiaMi puo ricevere una commissione da link affiliati e spazi sponsor senza aumentare il prezzo per l'utente.",
+    items: [
+      'Ogni contenuto commerciale viene indicato vicino al link con etichette come Link affiliato o Sponsor.',
+      'Gli acquisti avvengono sul sito del partner e restano soggetti alle sue condizioni, privacy e assistenza.',
+      'Le raccomandazioni commerciali usano il contesto della sezione e interessi generali, non messaggi privati o dati sensibili della vita sentimentale.',
+      'Non devi cliccare o acquistare per usare Scopri, creare match o inviare messaggi.',
+    ],
+  },
 ]
 
 const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
@@ -398,7 +519,15 @@ const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
         body: [
           'Il tuo account e personale: non condividere credenziali o codici invito con persone non autorizzate.',
           'CerchiaMi puo limitare, sospendere o rimuovere profili e contenuti quando serva a proteggere utenti, servizio o obblighi legali.',
-          'Eventuali funzionalita a pagamento richiederanno condizioni economiche dedicate prima di essere attivate.',
+          'Match e messaggi non richiedono acquisti. Il marketplace rimanda a siti partner che gestiscono vendita, pagamento, consegna, assistenza e resi.',
+        ],
+      },
+      {
+        title: 'Marketplace, affiliazioni e sponsor',
+        body: [
+          'CerchiaMi puo mostrare prodotti affiliati e contenuti sponsorizzati chiaramente riconoscibili.',
+          'Se completi un acquisto sul sito partner, CerchiaMi puo ricevere una commissione senza costi aggiuntivi per te.',
+          'Prezzi, disponibilita e condizioni mostrate dal partner possono cambiare: prima di acquistare verifica sempre la pagina esterna.',
         ],
       },
     ],
@@ -418,6 +547,8 @@ const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
           'CerchiaMi tratta email, profilo, eta, citta, interessi, preferenze, sezioni, match, messaggi, inviti, log tecnici e consensi.',
           'I dati servono per creare account, mostrare profili compatibili, gestire chat e inviti, prevenire abusi e rispettare obblighi legali.',
           'Alcune informazioni in una dating app possono essere delicate: vanno raccolte solo se necessarie e protette con attenzione.',
+          'I click sul marketplace possono essere registrati con prodotto, categoria e posizione del link per misurare le performance commerciali.',
+          'Messaggi privati, dati sulla vita sessuale e informazioni sensibili non vengono usati per scegliere sponsor o prodotti.',
         ],
       },
       {
@@ -451,6 +582,7 @@ const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
         body: [
           'Se aggiungi analytics, advertising, pixel, video esterni o mappe traccianti, serve informativa specifica e consenso prima del tracciamento.',
           "L'utente deve poter revocare il consenso con la stessa facilita con cui lo ha dato.",
+          'I link affiliati vengono dichiarati vicino al contenuto commerciale; il sito partner puo applicare i propri cookie dopo il click.',
         ],
       },
     ],
@@ -491,6 +623,7 @@ const PUBLIC_LEGAL_PATHS = Object.values(PUBLIC_LEGAL_PAGES).reduce<
 }, {})
 
 const GROUP_IMAGES = {
+  nerdCommunity: '/media/nerd-community-hero.webp',
   rooftop:
     'https://images.unsplash.com/photo-1758272133786-ee98adcc6837?auto=format&fit=crop&w=1400&q=82',
   parkWalk:
@@ -530,8 +663,8 @@ const EMPTY_PROFILE: OwnProfile = {
   displayName: '',
   age: 30,
   city: '',
-  bio: 'Preferisco conversazioni dirette, rispetto dei tempi e incontri leggeri.',
-  availability: 'Sere in settimana e domenica pomeriggio',
+  bio: 'Gamer, manga addicted e sempre pronto a scoprire un nuovo fandom.',
+  availability: 'Sere in settimana per gaming e weekend per uscite tranquille',
   sections: ['network', 'relationship'],
   visibility: 'circle',
 }
@@ -1369,23 +1502,27 @@ function App() {
   const topSuggestion = compatibleProfiles[0] ?? visibleProfiles[0] ?? null
   const discoverCopy: Record<SectionKey, { title: string; body: string }> = {
     network: {
-      title: 'Amicizie per oggi',
-      body: 'Trova persone vicine con cui condividere uscite, interessi e momenti leggeri.',
+      title: 'Trova chi parla la tua stessa lingua.',
+      body: 'Anime, manga, gaming, cosplay, tattoo e GDR: parti da quello che ami davvero.',
     },
     relationship: {
-      title: 'Relazioni compatibili',
-      body: 'Conosci persone che cercano qualcosa di chiaro, stabile e senza giochi inutili.',
+      title: 'Una relazione, senza tradurre chi sei.',
+      body: 'Conosci persone che cercano qualcosa di chiaro e condividono il tuo mondo.',
     },
     night: {
       title: 'Chimica 18+',
-      body: 'Uno spazio adulto, diretto e rispettoso, dove consenso e confini vengono prima di tutto.',
+      body: 'Uno spazio adulto e diretto, con consenso e confini sempre al primo posto.',
     },
   }
   const screenCopy: Record<ViewKey, { title: string; body: string }> = {
     discover: discoverCopy[activeSection],
     matches: {
-      title: 'Match e conversazioni',
-      body: "Continua solo le conversazioni che hanno davvero senso per te.",
+      title: 'Le tue connessioni',
+      body: 'Continua le conversazioni con chi ha davvero qualcosa da condividere con te.',
+    },
+    drops: {
+      title: 'Drop scelti per il tuo fandom',
+      body: 'Prodotti, collezionabili e strumenti dai partner. I link commerciali sono sempre dichiarati.',
     },
     invites: {
       title: 'Inviti privati',
@@ -1427,6 +1564,31 @@ function App() {
       }
     } catch (error) {
       console.warn('Legal acceptance not stored in Supabase.', error)
+    }
+  }
+
+  async function trackMarketplaceClick(
+    item: MarketplaceItem,
+    placement: string,
+  ) {
+    if (!supabase || !currentUserId) {
+      return
+    }
+
+    try {
+      const { error } = await supabase.from('marketplace_clicks').insert({
+        user_id: currentUserId,
+        product_id: item.id.slice(0, 120),
+        category: item.category,
+        placement: placement.slice(0, 80),
+        is_affiliate: item.affiliate,
+      })
+
+      if (error) {
+        throw error
+      }
+    } catch (error) {
+      console.warn('Marketplace click not stored in Supabase.', error)
     }
   }
 
@@ -2127,34 +2289,37 @@ function App() {
           </button>
           <button
             type="button"
-            className={query.toLowerCase() === 'musica' ? 'is-active' : ''}
+            className={query.toLowerCase() === 'anime' ? 'is-active' : ''}
             onClick={() =>
               setQuery((current) =>
-                current.toLowerCase() === 'musica' ? '' : 'musica',
+                current.toLowerCase() === 'anime' ? '' : 'anime',
               )
             }
           >
             <MessageCircle size={17} />
-            Musica
+            Anime
           </button>
           <button
             type="button"
-            className={query.toLowerCase() === 'viaggi' ? 'is-active' : ''}
+            className={query.toLowerCase() === 'gaming' ? 'is-active' : ''}
             onClick={() =>
               setQuery((current) =>
-                current.toLowerCase() === 'viaggi' ? '' : 'viaggi',
+                current.toLowerCase() === 'gaming' ? '' : 'gaming',
               )
             }
           >
-            <Sparkles size={17} />
-            Viaggi
+            <Gamepad2 size={17} />
+            Gaming
           </button>
         </div>
       )}
 
       <div className="app-stage">
         <section className="main-pane">
-          <section className="daily-hero" aria-labelledby="screen-title">
+          <section
+            className={`daily-hero view-${activeView}`}
+            aria-labelledby="screen-title"
+          >
             <div className="daily-copy">
               <h2 id="screen-title">{screenCopy[activeView].title}</h2>
               <p>{screenCopy[activeView].body}</p>
@@ -2185,6 +2350,14 @@ function App() {
                   <small>aggiornato</small>
                 </span>
               </div>
+            ) : activeView === 'drops' ? (
+              <div className="marketplace-hero-note">
+                <ShoppingBag size={24} />
+                <span>
+                  <strong>Marketplace esterno</strong>
+                  <small>Nessun acquisto necessario per match e chat.</small>
+                </span>
+              </div>
             ) : (
               <div className="quick-stats" aria-label="Riepilogo">
                 <div>
@@ -2212,7 +2385,7 @@ function App() {
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Cerca interessi, citta, nome"
+                    placeholder="Cerca anime, giochi, cosplay, citta o nome"
                   />
                 </label>
 
@@ -2290,6 +2463,10 @@ function App() {
                 sendMessage={sendMessage}
               />
             </section>
+          )}
+
+          {activeView === 'drops' && (
+            <AffiliateMarketplace onTrack={trackMarketplaceClick} />
           )}
 
           {activeView === 'invites' && (
@@ -2549,6 +2726,216 @@ function PersonalizationPanel({
         <span>Anteprima</span>
         <strong>{resolvedTheme === 'dark' ? 'Tema scuro' : 'Tema chiaro'}</strong>
       </div>
+    </section>
+  )
+}
+
+function AffiliateMarketplace({
+  onTrack,
+}: {
+  onTrack: (item: MarketplaceItem, placement: string) => Promise<void>
+}) {
+  const [activeCategory, setActiveCategory] = useState<DropCategory>('all')
+  const [items, setItems] = useState(DEFAULT_MARKETPLACE_ITEMS)
+  const [feedRefreshing, setFeedRefreshing] = useState(false)
+  const feedUrl = import.meta.env.VITE_MARKETPLACE_FEED_URL as
+    | string
+    | undefined
+
+  useEffect(() => {
+    if (!feedUrl) {
+      return
+    }
+
+    let cancelled = false
+
+    const refreshFeed = async () => {
+      setFeedRefreshing(true)
+
+      try {
+        const response = await fetch(feedUrl, {
+          headers: { Accept: 'application/json' },
+        })
+
+        if (!response.ok) {
+          throw new Error(`Marketplace feed ${response.status}`)
+        }
+
+        const payload = (await response.json()) as unknown
+        const rawItems = Array.isArray(payload)
+          ? payload
+          : payload && typeof payload === 'object'
+            ? (payload as Record<string, unknown>).items
+            : null
+
+        if (!Array.isArray(rawItems)) {
+          throw new Error('Marketplace feed format not supported')
+        }
+
+        const categories = new Set(['manga', 'cosplay', 'gaming', 'tattoo'])
+        const nextItems = rawItems
+          .slice(0, 24)
+          .map((value, index): MarketplaceItem | null => {
+            if (!value || typeof value !== 'object') {
+              return null
+            }
+
+            const item = value as Record<string, unknown>
+            const category = String(item.category ?? '')
+            const url = String(item.url ?? '')
+
+            if (!categories.has(category) || !url.startsWith('https://')) {
+              return null
+            }
+
+            return {
+              id: String(item.id ?? `feed-${index}`).slice(0, 120),
+              title: String(item.title ?? 'Drop CerchiaMi').slice(0, 120),
+              subtitle: String(item.subtitle ?? '').slice(0, 220),
+              category: category as MarketplaceItem['category'],
+              price: String(item.price ?? 'Scopri').slice(0, 60),
+              source: String(item.source ?? 'Partner').slice(0, 60),
+              image: String(item.image ?? MARKETPLACE_IMAGE),
+              imagePosition: String(item.imagePosition ?? 'center'),
+              url,
+              affiliate: item.affiliate !== false,
+            }
+          })
+          .filter((item): item is MarketplaceItem => Boolean(item))
+
+        if (!cancelled && nextItems.length) {
+          setItems(nextItems)
+        }
+      } catch (error) {
+        console.warn('Marketplace feed unavailable; using curated items.', error)
+      } finally {
+        if (!cancelled) {
+          setFeedRefreshing(false)
+        }
+      }
+    }
+
+    void refreshFeed()
+    const interval = window.setInterval(refreshFeed, 60 * 60 * 1000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [feedUrl])
+
+  const visibleItems =
+    activeCategory === 'all'
+      ? items
+      : items.filter((item) => item.category === activeCategory)
+
+  const sponsorItem: MarketplaceItem | null = SPONSOR_CONFIG
+    ? {
+        id: `sponsor-${SPONSOR_CONFIG.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        title: SPONSOR_CONFIG.name,
+        subtitle: SPONSOR_CONFIG.copy,
+        category: 'gaming',
+        price: 'Scopri il partner',
+        source: 'Sponsor',
+        image: SPONSOR_CONFIG.image,
+        url: SPONSOR_CONFIG.url,
+        affiliate: false,
+      }
+    : null
+
+  return (
+    <section className="drop-marketplace" aria-labelledby="drop-marketplace-title">
+      <div className="drop-banner">
+        <img src={MARKETPLACE_IMAGE} alt="Selezione di prodotti per passioni nerd" />
+        <div>
+          <ShoppingBag size={30} />
+          <h3 id="drop-marketplace-title">Il tuo loot, senza paywall</h3>
+          <p>
+            Selezioni da partner esterni per manga, cosplay, gaming e arte.
+            Match e messaggi restano indipendenti dagli acquisti.
+          </p>
+        </div>
+      </div>
+
+      <div className="drop-toolbar">
+        <div className="drop-categories" role="tablist" aria-label="Categorie Drop">
+          {MARKETPLACE_CATEGORIES.map((category) => (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === category.key}
+              className={activeCategory === category.key ? 'is-active' : ''}
+              key={category.key}
+              onClick={() => setActiveCategory(category.key)}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
+        {feedRefreshing && <span className="feed-status">Aggiornamento...</span>}
+      </div>
+
+      <p className="affiliate-disclosure">
+        <BadgeCheck size={17} />
+        <span>
+          I contenuti commerciali sono dichiarati. Dai link affiliati CerchiaMi
+          puo ricevere una commissione, senza costi extra per te.
+        </span>
+      </p>
+
+      {sponsorItem && (
+        <a
+          className="sponsor-feature"
+          href={sponsorItem.url}
+          target="_blank"
+          rel="sponsored noopener noreferrer"
+          onClick={() => void onTrack(sponsorItem, 'sponsor-feature')}
+        >
+          <img src={sponsorItem.image} alt="" />
+          <span>
+            <small>Sponsor</small>
+            <strong>{sponsorItem.title}</strong>
+            <span>{sponsorItem.subtitle}</span>
+          </span>
+          <ExternalLink size={20} />
+        </a>
+      )}
+
+      <div className="drop-grid">
+        {visibleItems.map((item) => (
+          <a
+            className="drop-card"
+            href={item.url}
+            target="_blank"
+            rel={`${item.affiliate ? 'sponsored ' : ''}noopener noreferrer`}
+            key={item.id}
+            onClick={() => void onTrack(item, 'drop-grid')}
+          >
+            <span className="drop-media">
+              <img
+                src={item.image}
+                alt=""
+                style={{ objectPosition: item.imagePosition ?? 'center' }}
+              />
+              <span>{item.affiliate ? 'Link affiliato' : 'Suggerimento'}</span>
+            </span>
+            <span className="drop-card-copy">
+              <small>{item.source}</small>
+              <strong>{item.title}</strong>
+              <span>{item.subtitle}</span>
+              <span className="drop-card-footer">
+                <b>{item.price}</b>
+                <ExternalLink size={18} />
+              </span>
+            </span>
+          </a>
+        ))}
+      </div>
+
+      <p className="marketplace-footnote">
+        Acquisto, pagamento, spedizione, reso e assistenza avvengono sul sito del
+        partner. Controlla sempre prezzo e condizioni prima di procedere.
+      </p>
     </section>
   )
 }
@@ -3272,7 +3659,7 @@ function OnboardingFlow({
                 <input
                   value={draft.interests}
                   onChange={(event) => updateDraft('interests', event.target.value)}
-                  placeholder="musica live, startup, cinema"
+                  placeholder="anime, manga, cosplay, gaming, tattoo, GDR"
                 />
               </label>
             </>
@@ -4142,7 +4529,7 @@ function OwnProfileEditor({
               interests: parseInterests(event.target.value),
             }))
           }
-          placeholder="musica live, startup, cinema"
+          placeholder="anime, manga, cosplay, gaming, tattoo, GDR"
         />
       </label>
 

@@ -1,6 +1,7 @@
 # CerchiaMi
 
-App React + TypeScript per incontri privati, gratuiti e solo su invito.
+App React + TypeScript per incontri privati tra adulti appassionati di manga,
+anime, cosplay, tattoo, videogiochi e GDR. Match e messaggi restano gratuiti.
 La versione online usa Supabase per login email, profili, inviti, like, match e
 messaggi, e Vercel per il deploy/API del disclaimer giornaliero.
 
@@ -39,6 +40,9 @@ email.
   giornata.
 - Conferma 18+, consenso e comportamento rispettoso.
 - Tre sezioni: amicizia, relazione, chimica 18+.
+- Marketplace `Drop` con catalogo affiliato, categorie e sponsor dichiarati.
+- Feed marketplace opzionale aggiornato automaticamente ogni ora.
+- Tracciamento Supabase dei click commerciali con RLS per utente autenticato.
 - Profili, filtri, interessi, match e chat.
 - Creazione e copia di nuovi codici invito.
 - Profilo personale modificabile.
@@ -66,6 +70,34 @@ VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
 SUPABASE_SERVICE_ROLE_KEY
 ```
+
+### Marketplace automatico
+
+Le URL affiliate complete vanno inserite in Vercel senza modificare il codice:
+
+```bash
+VITE_AFFILIATE_MANGA_URL
+VITE_AFFILIATE_COSPLAY_URL
+VITE_AFFILIATE_GAMING_URL
+VITE_AFFILIATE_TATTOO_URL
+```
+
+Per alimentare il catalogo automaticamente usa `VITE_MARKETPLACE_FEED_URL` con
+un endpoint HTTPS CORS che restituisce un array JSON, oppure `{ "items": [...] }`.
+Ogni elemento supporta `id`, `title`, `subtitle`, `category`, `price`, `source`,
+`image`, `url` e `affiliate`. Le categorie valide sono `manga`, `cosplay`,
+`gaming` e `tattoo`.
+
+Uno sponsor nativo opzionale si configura con:
+
+```bash
+VITE_SPONSOR_NAME
+VITE_SPONSOR_COPY
+VITE_SPONSOR_URL
+VITE_SPONSOR_IMAGE
+```
+
+Lo spazio sponsor resta nascosto se `VITE_SPONSOR_URL` non e impostata.
 
 Con queste variabili presenti al momento della build, Vercel genera una versione
 online collegata a Supabase.

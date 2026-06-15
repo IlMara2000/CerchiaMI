@@ -114,6 +114,23 @@ create table if not exists public.account_deletion_requests (
   completed_at timestamptz
 );
 
+create table if not exists public.marketplace_clicks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  product_id text not null check (char_length(product_id) between 1 and 120),
+  category text not null
+    check (category in ('manga', 'cosplay', 'gaming', 'tattoo')),
+  placement text not null check (char_length(placement) between 1 and 80),
+  is_affiliate boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists marketplace_clicks_created_at_idx
+  on public.marketplace_clicks (created_at desc);
+
+create index if not exists marketplace_clicks_product_idx
+  on public.marketplace_clicks (product_id, created_at desc);
+
 insert into public.invites (code, purpose)
 values
   ('CERCHIAMI-2026', 'Codice iniziale CerchiaMi'),
@@ -130,6 +147,7 @@ alter table public.legal_acceptances enable row level security;
 alter table public.user_blocks enable row level security;
 alter table public.user_reports enable row level security;
 alter table public.account_deletion_requests enable row level security;
+alter table public.marketplace_clicks enable row level security;
 
 grant select, insert, update, delete on public.profiles to authenticated;
 grant select, insert, update, delete on public.invites to authenticated;
@@ -140,6 +158,7 @@ grant select, insert, update on public.legal_acceptances to authenticated;
 grant select, insert, delete on public.user_blocks to authenticated;
 grant select, insert on public.user_reports to authenticated;
 grant select, insert on public.account_deletion_requests to authenticated;
+grant insert on public.marketplace_clicks to authenticated;
 
 drop policy if exists "profiles_select_authenticated" on public.profiles;
 create policy "profiles_select_authenticated"
@@ -325,6 +344,12 @@ create policy "account_deletion_requests_select_own"
 drop policy if exists "account_deletion_requests_insert_own" on public.account_deletion_requests;
 create policy "account_deletion_requests_insert_own"
   on public.account_deletion_requests for insert
+  to authenticated
+  with check (user_id = auth.uid());
+
+drop policy if exists "marketplace_clicks_insert_own" on public.marketplace_clicks;
+create policy "marketplace_clicks_insert_own"
+  on public.marketplace_clicks for insert
   to authenticated
   with check (user_id = auth.uid());
 
