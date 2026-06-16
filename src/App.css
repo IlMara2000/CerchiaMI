@@ -15,7 +15,12 @@
 
 .wordmark span:last-child,
 .launch-wordmark span:last-child {
-  color: #ff5348;
+  color: #c8322d;
+}
+
+:root[data-theme="dark"] .wordmark span:last-child,
+:root[data-theme="dark"] .launch-wordmark span:last-child {
+  color: #ff766c;
 }
 
 .app-shell {
@@ -1428,7 +1433,7 @@ select:focus {
 }
 
 .public-legal-shell .eyebrow {
-  color: #6f8883;
+  color: #4e6b65;
 }
 
 .public-legal-nav {
@@ -2095,6 +2100,28 @@ select:focus {
   animation: none;
 }
 
+:root[data-theme="dark"] .launch-shell {
+  --text: #edf7f4;
+  --muted: #b8c9c4;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 50% 34%, rgba(255, 118, 108, 0.16), transparent 34%),
+    linear-gradient(180deg, #07100e 0%, #101b18 100%);
+}
+
+:root[data-theme="dark"] .launch-button,
+:root[data-theme="dark"] .launch-wordmark,
+:root[data-theme="dark"] .launch-wordmark span:first-child {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .launch-hint,
+:root[data-theme="dark"] .legal-links a {
+  color: #dbe9e5;
+  border-color: rgba(229, 247, 241, 0.14);
+  background: #101b18;
+}
+
 .auth-shell {
   display: grid;
   grid-template-columns: minmax(320px, 500px) minmax(0, 1fr);
@@ -2246,6 +2273,46 @@ select:focus {
   animation: screen-rise var(--motion-slow) var(--ease-out) both;
 }
 
+:root[data-theme="dark"] .auth-shell,
+:root[data-theme="dark"] .onboarding-shell {
+  --text: #edf7f4;
+  --muted: #b8c9c4;
+  --faint: #819790;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 16% 7%, rgba(255, 118, 108, 0.12), transparent 26%),
+    linear-gradient(180deg, #07100e 0%, #101b18 100%);
+}
+
+:root[data-theme="dark"] .auth-panel,
+:root[data-theme="dark"] .onboarding-frame {
+  color: var(--text);
+  border-color: rgba(229, 247, 241, 0.14);
+  background: #101b18;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+}
+
+:root[data-theme="dark"] .auth-brand h1,
+:root[data-theme="dark"] .auth-brand .wordmark span:first-child,
+:root[data-theme="dark"] .onboarding-frame h1,
+:root[data-theme="dark"] .onboarding-frame h2,
+:root[data-theme="dark"] .onboarding-frame h3 {
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .auth-mode,
+:root[data-theme="dark"] .auth-note,
+:root[data-theme="dark"] .step-track span,
+:root[data-theme="dark"] .step-meter {
+  color: var(--muted);
+  border-color: rgba(229, 247, 241, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+:root[data-theme="dark"] .auth-note svg {
+  color: #23d0b0;
+}
+
 .onboarding-frame {
   display: grid;
   width: min(920px, 100%);
@@ -2368,6 +2435,10 @@ select:focus {
 
 .disclaimer-dialog .primary-button {
   justify-self: start;
+}
+
+.disclaimer-dialog .eyebrow {
+  color: #4e6b65;
 }
 
 .night-reminder {
@@ -3127,7 +3198,7 @@ select:focus {
 }
 
 .app-shell.section-network {
-  --section-accent: #078f86;
+  --section-accent: #06766f;
   --section-soft: #ddf7f2;
 }
 
@@ -3671,6 +3742,7 @@ select:focus {
   }
 
   .daily-hero.view-discover {
+    grid-template-columns: 1fr;
     min-height: 510px;
     padding-top: 255px;
     background:
@@ -3686,6 +3758,7 @@ select:focus {
   }
 
   .theme-dark .daily-hero.view-discover {
+    grid-template-columns: 1fr;
     background:
       linear-gradient(
         180deg,
@@ -3703,6 +3776,17 @@ select:focus {
     min-height: 360px;
     grid-template-columns: 1fr;
     background-position: 62% center;
+  }
+
+  .filters {
+    grid-template-columns: 1fr;
+    overflow: visible;
+  }
+
+  .distance-field,
+  .age-field,
+  .search-field {
+    width: 100%;
   }
 
   .drop-banner {
@@ -3745,6 +3829,7 @@ select:focus {
   }
 
   .daily-hero.view-discover {
+    grid-template-columns: 1fr;
     min-height: 470px;
     padding: 235px 16px 16px;
   }
@@ -3775,4 +3860,117 @@ select:focus {
     width: 78px;
     aspect-ratio: 1;
   }
+}
+
+:root[data-theme="dark"] .launch-shell,
+:root[data-theme="dark"] .auth-shell,
+:root[data-theme="dark"] .onboarding-shell {
+  color: #edf7f4;
+  background:
+    radial-gradient(circle at 16% 8%, rgba(255, 118, 108, 0.14), transparent 28%),
+    radial-gradient(circle at 84% 10%, rgba(35, 208, 176, 0.1), transparent 30%),
+    linear-gradient(180deg, #07100e 0%, #101b18 100%);
+}
+
+:root[data-theme="dark"] .launch-button,
+:root[data-theme="dark"] .launch-wordmark,
+:root[data-theme="dark"] .launch-wordmark span:first-child,
+:root[data-theme="dark"] .auth-brand h1,
+:root[data-theme="dark"] .auth-brand .wordmark span:first-child {
+  color: #edf7f4;
+}
+
+:root[data-theme="dark"] .launch-hint,
+:root[data-theme="dark"] .legal-links a,
+:root[data-theme="dark"] .auth-mode,
+:root[data-theme="dark"] .auth-note {
+  color: #dbe9e5;
+  border-color: rgba(229, 247, 241, 0.14);
+  background: #101b18;
+}
+
+.app-topbar .wordmark span:last-child,
+.desktop-nav .wordmark span:last-child,
+.settings-menu .wordmark span:last-child {
+  color: #ff766c;
+}
+
+.theme-dark .section-rail button.is-active,
+.theme-dark .mood-chips button.is-active,
+.theme-dark .desktop-nav > button.is-active,
+.theme-dark .desktop-nav .settings-trigger.is-active,
+.theme-dark .settings-menu button.is-active {
+  color: #ffffff;
+  border-color: transparent;
+  background: var(--section-accent);
+}
+
+:root[data-theme="dark"] .auth-shell input,
+:root[data-theme="dark"] .auth-shell textarea,
+:root[data-theme="dark"] .auth-shell select,
+:root[data-theme="dark"] .onboarding-shell input,
+:root[data-theme="dark"] .onboarding-shell textarea,
+:root[data-theme="dark"] .onboarding-shell select {
+  color: #edf7f4;
+  border-color: rgba(229, 247, 241, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .auth-shell input::placeholder,
+:root[data-theme="dark"] .auth-shell textarea::placeholder,
+:root[data-theme="dark"] .onboarding-shell input::placeholder,
+:root[data-theme="dark"] .onboarding-shell textarea::placeholder {
+  color: #9eb3ad;
+}
+
+:root[data-theme="dark"] .auth-mode button,
+:root[data-theme="dark"] .intent-editor button,
+:root[data-theme="dark"] .choice-grid button {
+  color: #dbe9e5;
+  border-color: rgba(229, 247, 241, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="dark"] .auth-mode button.is-active,
+:root[data-theme="dark"] .intent-editor button.is-active,
+:root[data-theme="dark"] .choice-grid button.is-active {
+  color: #ffffff;
+  border-color: transparent;
+  background: #06766f;
+}
+
+.theme-dark .report-dialog,
+.theme-dark .disclaimer-dialog,
+.theme-dark .night-reminder,
+:root[data-theme="dark"] .report-dialog,
+:root[data-theme="dark"] .disclaimer-dialog,
+:root[data-theme="dark"] .night-reminder {
+  color: #edf7f4;
+  border-color: rgba(229, 247, 241, 0.14);
+  background: #101b18;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.34);
+}
+
+.theme-dark .report-dialog h2,
+.theme-dark .disclaimer-dialog h2,
+.theme-dark .night-reminder strong,
+.theme-dark .disclaimer-dialog p,
+.theme-dark .night-reminder span,
+:root[data-theme="dark"] .report-dialog h2,
+:root[data-theme="dark"] .disclaimer-dialog h2,
+:root[data-theme="dark"] .night-reminder strong,
+:root[data-theme="dark"] .disclaimer-dialog p,
+:root[data-theme="dark"] .night-reminder span {
+  color: #edf7f4;
+}
+
+.theme-dark .disclaimer-dialog .eyebrow,
+:root[data-theme="dark"] .disclaimer-dialog .eyebrow {
+  color: #b8c9c4;
+}
+
+.theme-dark .disclaimer-icon,
+:root[data-theme="dark"] .disclaimer-icon {
+  color: #23d0b0;
+  background: rgba(35, 208, 176, 0.12);
 }
