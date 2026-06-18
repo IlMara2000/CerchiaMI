@@ -248,12 +248,27 @@ type RemoteBlockRow = {
   blocked_profile: string
 }
 
+type AccountSyncState = {
+  theme: ThemeMode
+  activeSection: SectionKey
+  hiddenInviteCodes: string[]
+  passedProfileIds: string[]
+  nightAccepted: boolean
+  filters: {
+    maxDistance: number
+    minAge: number
+    maxAge: number
+  }
+}
+
 const PROFILE_SELECT =
   'id, first_name, last_name, username, birth_date, gender, relationship_goal, interests, display_name, age, city, bio, availability, sections, visibility'
 
-const BRAND_MARK_SRC = '/favicon.svg?v=20260526'
-const LEGAL_UPDATED_AT = '15 giugno 2026'
-const LEGAL_DOCUMENT_VERSION = 'cerchiami-legal-2026-06-15'
+const APP_RELEASE = '2026.06.18.1'
+const APP_DATA_VERSION = 2
+const BRAND_MARK_SRC = '/favicon.svg?v=20260616'
+const LEGAL_UPDATED_AT = '18 giugno 2026'
+const LEGAL_DOCUMENT_VERSION = 'cerchiami-legal-2026-06-18'
 
 const SECTION_META: Record<SectionKey, SectionMeta> = {
   network: {
@@ -447,8 +462,10 @@ const LEGAL_SECTIONS: LegalSection[] = [
     summary:
       'CerchiaMi usa solo i dati necessari per far funzionare profilo, inviti, match, sicurezza e preferenze.',
     items: [
-      'Dati trattati: email, profilo, eta, citta, interessi, preferenze, sezioni scelte, match, messaggi, inviti, log tecnici, indirizzo IP e consensi.',
+      'Dati trattati: email, profilo, eta, citta, interessi, preferenze, sezioni scelte, match, messaggi, inviti, log tecnici, identificatore dispositivo, hash giornaliero IP e consensi.',
       'Finalita: creare account, mostrare profili compatibili, gestire inviti e chat, prevenire abusi, mantenere sicurezza e rispettare obblighi legali.',
+      "I dispositivi vengono collegati tramite l'identificativo dell'account. L'indirizzo IP non viene usato come identita: viene trasformato lato server in un hash pseudonimo che cambia ogni giorno.",
+      'Le registrazioni dei dispositivi non utilizzati vengono eliminate automaticamente dopo 90 giorni.',
       'I click sui prodotti possono essere registrati per misurare il funzionamento del marketplace, senza usare messaggi privati o preferenze intime per la pubblicita.',
       'I dati personali non vanno condivisi con leggerezza: scegli sempre cosa mostrare e cosa tenere privato.',
       'Puoi chiedere accesso, rettifica, cancellazione, portabilita, limitazione, opposizione e revoca dei consensi quando applicabile.',
@@ -476,6 +493,7 @@ const LEGAL_SECTIONS: LegalSection[] = [
       "L'app usa strumenti tecnici per ricordare sessione, preferenze e conferme essenziali.",
     items: [
       'Cookie/local storage tecnici possono servire per sessione, sicurezza, lingua, preferenze e consenso giornaliero.',
+      "Un identificatore casuale del dispositivo permette di migrare le preferenze tra accessi dello stesso account; non contiene nome, email o indirizzo IP in chiaro.",
       'Eventuali strumenti non tecnici, come analytics o advertising, richiedono informazione chiara e consenso quando previsto.',
       'Le pagine Termini, Privacy, Cookie e Sicurezza restano sempre raggiungibili dalla sezione dedicata.',
       'I consensi importanti vengono registrati per dimostrare quando sono stati accettati.',
@@ -544,8 +562,10 @@ const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
       {
         title: 'Dati e finalita',
         body: [
-          'CerchiaMi tratta email, profilo, eta, citta, interessi, preferenze, sezioni, match, messaggi, inviti, log tecnici e consensi.',
+          'CerchiaMi tratta email, profilo, eta, citta, interessi, preferenze, sezioni, match, messaggi, inviti, log tecnici, identificatori pseudonimi di dispositivo e consensi.',
           'I dati servono per creare account, mostrare profili compatibili, gestire chat e inviti, prevenire abusi e rispettare obblighi legali.',
+          "I dispositivi dello stesso account sono collegati tramite l'ID utente Supabase. L'IP viene trasformato lato server in un hash HMAC giornaliero e non viene salvato in chiaro ne usato per unire account diversi.",
+          "I dispositivi non utilizzati da oltre 90 giorni vengono rimossi automaticamente; lo stato sincronizzato resta associato all'account fino alla cancellazione.",
           'Alcune informazioni in una dating app possono essere delicate: vanno raccolte solo se necessarie e protette con attenzione.',
           'I click sul marketplace possono essere registrati con prodotto, categoria e posizione del link per misurare le performance commerciali.',
           'Messaggi privati, dati sulla vita sessuale e informazioni sensibili non vengono usati per scegliere sponsor o prodotti.',
@@ -574,6 +594,7 @@ const PUBLIC_LEGAL_PAGES: Record<PublicLegalKey, PublicLegalPage> = {
         title: 'Strumenti tecnici',
         body: [
           'Local storage e cookie tecnici possono servire per sessione, preferenze, disclaimer giornaliero, sicurezza e funzionamento app.',
+          'Un identificatore casuale salvato sul dispositivo consente la sincronizzazione delle preferenze con lo stesso account. Gli IP non sono conservati in chiaro.',
           'Questi strumenti non sono pensati per profilazione commerciale e sono necessari alla normale esperienza utente.',
         ],
       },
@@ -691,6 +712,86 @@ const STORAGE = {
   messages: 'cerchiami.messages',
   nightAccepted: 'cerchiami.nightAccepted',
   theme: 'cerchiami.theme',
+  deviceId: 'cerchiami.deviceId',
+  dataVersion: 'cerchiami.dataVersion',
+}
+
+function ensureLocalDataVersion() {
+  try {
+    const currentVersion = Number(
+      window.localStorage.getItem(STORAGE.dataVersion) ?? '0',
+    )
+
+    if (currentVersion < APP_DATA_VERSION) {
+      window.localStorage.removeItem('cerchiami.updateRequired')
+      window.localStorage.removeItem('cerchiami.versionPrompt')
+      window.localStorage.setItem(
+        STORAGE.dataVersion,
+        String(APP_DATA_VERSION),
+      )
+    }
+  } catch {
+    // Storage can be unavailable in private browsing; the app still works.
+  }
+}
+
+function getDeviceId() {
+  try {
+    const stored = window.localStorage.getItem(STORAGE.deviceId)
+
+    if (stored && stored.length >= 16) {
+      return stored
+    }
+
+    const generated =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random()
+        .toString(36)
+        .slice(2)}`
+    window.localStorage.setItem(STORAGE.deviceId, generated)
+    return generated
+  } catch {
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`
+  }
+}
+
+function hasStoredSyncState() {
+  try {
+    return [
+      STORAGE.theme,
+      STORAGE.hiddenInvites,
+      STORAGE.passes,
+      STORAGE.nightAccepted,
+    ].some((key) => window.localStorage.getItem(key) !== null)
+  } catch {
+    return false
+  }
+}
+
+async function withTimeout<T>(
+  operation: PromiseLike<T>,
+  timeoutMs = 12000,
+): Promise<T> {
+  let timeoutId = 0
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(
+      () => reject(new Error('REQUEST_TIMEOUT')),
+      timeoutMs,
+    )
+  })
+
+  try {
+    return await Promise.race([Promise.resolve(operation), timeout])
+  } finally {
+    window.clearTimeout(timeoutId)
+  }
+}
+
+function sameStringList(left: string[], right: string[]) {
+  return (
+    left.length === right.length &&
+    left.every((item, index) => item === right[index])
+  )
 }
 
 function readStored<T>(key: string, fallback: T): T {
@@ -1047,6 +1148,9 @@ function validateOnboardingDraft(draft: OnboardingDraft, step?: number) {
 }
 
 function App() {
+  ensureLocalDataVersion()
+  const hadLocalSyncStateRef = useRef(hasStoredSyncState())
+
   const [session, setSession] = useStoredState<Session | null>(
     STORAGE.session,
     null,
@@ -1115,6 +1219,9 @@ function App() {
   const [remoteLoading, setRemoteLoading] = useState(false)
   const [showNightReminder, setShowNightReminder] = useState(false)
   const nightReminderTimerRef = useRef<number | null>(null)
+  const deviceSyncTimerRef = useRef<number | null>(null)
+  const deviceSyncInFlightRef = useRef(false)
+  const lastDeviceSyncSignatureRef = useRef('')
 
   const refreshRemoteData = useCallback(
     async (userId: string, viewerCity = ownProfile.city) => {
@@ -1126,7 +1233,7 @@ function App() {
 
       try {
         const [profilesResult, likesResult, matchesResult, invitesResult] =
-          await Promise.all([
+          await withTimeout(Promise.all([
             supabase
               .from('profiles')
               .select(PROFILE_SELECT)
@@ -1145,7 +1252,7 @@ function App() {
               .select('id, code, purpose, created_at, used_by, used_at, created_by')
               .or(`created_by.eq.${userId},used_by.eq.${userId}`)
               .order('created_at', { ascending: false }),
-          ])
+          ]))
 
         if (
           profilesResult.error ||
@@ -1267,11 +1374,13 @@ function App() {
         return
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(PROFILE_SELECT)
-        .eq('id', userId)
-        .maybeSingle()
+      const { data, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select(PROFILE_SELECT)
+          .eq('id', userId)
+          .maybeSingle(),
+      )
 
       if (error) {
         console.error(error)
@@ -1314,7 +1423,12 @@ function App() {
 
       if (user) {
         await loadAccount(user.id, user.email ?? '')
+        return
       }
+
+      setSession(null)
+      setCurrentUserId(null)
+      setRemoteState(REMOTE_STATE_EMPTY)
     }
 
     void restoreSupabaseSession()
@@ -1327,6 +1441,7 @@ function App() {
         return
       }
 
+      setSession(null)
       setCurrentUserId(null)
       setRemoteState(REMOTE_STATE_EMPTY)
     })
@@ -1335,7 +1450,174 @@ function App() {
       cancelled = true
       authListener?.data.subscription.unsubscribe()
     }
-  }, [loadAccount])
+  }, [loadAccount, setSession])
+
+  useEffect(() => {
+    async function removeObsoleteAppCaches() {
+      try {
+        if ('serviceWorker' in navigator) {
+          const registrations = await navigator.serviceWorker.getRegistrations()
+          await Promise.all(
+            registrations
+              .filter((registration) =>
+                registration.scope.startsWith(window.location.origin),
+              )
+              .map((registration) => registration.unregister()),
+          )
+        }
+
+        if ('caches' in window) {
+          const names = await window.caches.keys()
+          await Promise.all(
+            names
+              .filter((name) => name.toLowerCase().includes('cerchiami'))
+              .map((name) => window.caches.delete(name)),
+          )
+        }
+      } catch {
+        // Cache cleanup is best-effort and must never block the app.
+      }
+    }
+
+    void removeObsoleteAppCaches()
+  }, [])
+
+  useEffect(() => {
+    if (!currentUserId || !supabase) {
+      return
+    }
+
+    const supabaseClient = supabase
+    const localState: AccountSyncState = {
+      theme: themeMode,
+      activeSection,
+      hiddenInviteCodes,
+      passedProfileIds: passedIds,
+      nightAccepted,
+      filters: { maxDistance, minAge, maxAge },
+    }
+    const signature = JSON.stringify(localState)
+
+    if (signature === lastDeviceSyncSignatureRef.current) {
+      return
+    }
+
+    if (deviceSyncTimerRef.current) {
+      window.clearTimeout(deviceSyncTimerRef.current)
+    }
+
+    deviceSyncTimerRef.current = window.setTimeout(async () => {
+      if (deviceSyncInFlightRef.current) {
+        return
+      }
+
+      deviceSyncInFlightRef.current = true
+
+      try {
+        const { data, error } = await withTimeout(
+          supabaseClient.auth.getSession(),
+          6000,
+        )
+        const token = data.session?.access_token
+
+        if (error || !token) {
+          return
+        }
+
+        const response = await withTimeout(
+          fetch('/api/device-sync', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              appVersion: APP_RELEASE,
+              dataVersion: APP_DATA_VERSION,
+              deviceId: getDeviceId(),
+              preferRemote: !hadLocalSyncStateRef.current,
+              updatedAt: new Date().toISOString(),
+              state: localState,
+            }),
+          }),
+          10000,
+        )
+
+        if (!response.ok) {
+          return
+        }
+
+        const payload = (await response.json()) as {
+          state?: AccountSyncState
+        }
+        const synced = payload.state
+
+        if (!synced) {
+          return
+        }
+
+        lastDeviceSyncSignatureRef.current = JSON.stringify(synced)
+        hadLocalSyncStateRef.current = true
+        setThemeMode((current) =>
+          current === synced.theme ? current : synced.theme,
+        )
+        setActiveSection((current) =>
+          current === synced.activeSection ? current : synced.activeSection,
+        )
+        setHiddenInviteCodes((current) =>
+          sameStringList(current, synced.hiddenInviteCodes)
+            ? current
+            : synced.hiddenInviteCodes,
+        )
+        setPassedIds((current) =>
+          sameStringList(current, synced.passedProfileIds)
+            ? current
+            : synced.passedProfileIds,
+        )
+        setNightAccepted(synced.nightAccepted)
+        setMaxDistance(synced.filters.maxDistance)
+        setMinAge(synced.filters.minAge)
+        setMaxAge(synced.filters.maxAge)
+      } catch {
+        // Local data remains available and will sync on the next change/reload.
+      } finally {
+        deviceSyncInFlightRef.current = false
+      }
+    }, 700)
+
+    return () => {
+      if (deviceSyncTimerRef.current) {
+        window.clearTimeout(deviceSyncTimerRef.current)
+      }
+    }
+  }, [
+    activeSection,
+    currentUserId,
+    hiddenInviteCodes,
+    maxAge,
+    maxDistance,
+    minAge,
+    nightAccepted,
+    passedIds,
+    setHiddenInviteCodes,
+    setNightAccepted,
+    setPassedIds,
+    setThemeMode,
+    themeMode,
+  ])
+
+  useEffect(() => {
+    if (!currentUserId) {
+      return
+    }
+
+    const retry = () => {
+      void loadAccount(currentUserId, authEmail)
+    }
+
+    window.addEventListener('online', retry)
+    return () => window.removeEventListener('online', retry)
+  }, [authEmail, currentUserId, loadAccount])
 
   useEffect(() => {
     async function loadDisclaimerKey() {
@@ -1674,16 +1956,17 @@ function App() {
     setAuthEmail(email)
 
     try {
-      const { data, error } =
+      const { data, error } = await withTimeout(
         request.mode === 'signup'
-          ? await supabase.auth.signUp({
+          ? supabase.auth.signUp({
               email,
               password: request.password,
             })
-          : await supabase.auth.signInWithPassword({
+          : supabase.auth.signInWithPassword({
               email,
               password: request.password,
-            })
+            }),
+      )
 
       if (error) {
         return /captcha/i.test(error.message)
@@ -1702,7 +1985,9 @@ function App() {
       return null
     } catch (error) {
       console.error(error)
-      return 'Accesso non completato.'
+      return error instanceof Error && error.message === 'REQUEST_TIMEOUT'
+        ? 'Il servizio sta tornando online. Attendi qualche secondo e riprova.'
+        : 'Accesso non completato. Controlla la connessione e riprova.'
     }
   }
 

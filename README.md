@@ -47,6 +47,8 @@ email.
 - Creazione e copia di nuovi codici invito.
 - Profilo personale modificabile.
 - Sincronizzazione Supabase per profili, inviti, like, match e messaggi.
+- Migrazione preferenze tra dispositivi dello stesso account con identificatori
+  pseudonimi, hash IP giornalieri e conservazione tecnica massima di 90 giorni.
 - Pagine pubbliche `/terms`, `/privacy`, `/cookie`, `/safety`.
 - Salvataggio versione consenso legale, blocco utenti, segnalazioni e richiesta
   cancellazione account tramite Supabase.
@@ -68,7 +70,9 @@ Per preparare il backend:
 ```bash
 VITE_SUPABASE_URL
 VITE_SUPABASE_PUBLISHABLE_KEY
+SUPABASE_PROJECT_URL
 SUPABASE_SERVICE_ROLE_KEY
+DEVICE_HASH_SECRET
 ```
 
 ### Marketplace automatico
